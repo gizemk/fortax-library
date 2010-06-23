@@ -1,0 +1,28 @@
+Pre-tax Earnings,pretaxearn,tu
+Post-tax Earnings,posttaxearn,tu
+Pre-tax Income,pretax,tu
+Child Benefit,chben,tu
+Maternity Grant,matgrant,tu
+Family Credit/WFTC,fc,tu
+Working Tax Credit,wtc,tu
+Child Tax Credit,ctc,tu
+Income Support,incsup,tu
+Housing Benefit,hben,tu
+Community Charge,polltax,tu
+Community Charge benefit,polltaxben,tu
+Council Tax,ctax,tu
+Council Tax Benefit,ctaxben,tu
+Disposable Income,dispinc,tu
+Total Tax,tottax,tu
+Childcare subsidy,chcaresub,tu
+Free School Meals,fsm,tu
+Pre-tax earnings,pretaxearn,ad1
+Post-tax earnings,posttaxearn,ad1
+Taxable Income,taxable,ad1
+Income Tax,inctax,ad1
+National Insurance,natins,ad1
+Pre-tax earnings,pretaxearn,ad2
+Post-tax earnings,posttaxearn,ad2
+Taxable Income,taxable,ad2
+Income Tax,inctax,ad2
+National Insurance,natins,ad2
