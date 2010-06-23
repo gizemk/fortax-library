@@ -1,0 +1,122 @@
+{smcl}
+{hline}
+help for {hi:fortax}
+{hline}
+
+{title:FORTAX for Stata}
+
+{p 4 4 2}{cmdab:fortax} [{cmd:if} {it:exp}] [{cmd:in} {it:range}]
+{cmd:[,}
+    {cmd:listsys}
+    {cmd:listfam}
+    {cmd:listnet}
+    {cmd:sys(}{it:sysname}{cmd:)}
+    {cmd:sysfile(}{it:filename}{cmd:)}
+    {cmd:uprate(}{it:real}{cmd:)}
+    {it:famvar1}{cmd:(}{it:varname}{cmd:)}
+    {cmd: ... }
+    {it:famvarN}{cmd:(}{it:varname}{cmd:)}
+    {cmd:netout(}{it:namelist}{cmd:)}
+    {cmd:netoutvar(}{it:namelist}{cmd:)}
+    {cmd:label} {cmd:replace}
+{cmd:]}
+
+{title:Description}
+
+{p 4 4 2}FORTAX for Stata (henceforth, {cmd:fortax}) provides a convenient way of accessing the Fortran FORTAX library from within
+Stata. It allows users to calculate very detailed income measures under a range of UK tax and benefit systems.
+
+{p 4 4 2}There are essentially three parts to using {cmd:fortax}; firstly, specifying the tax and
+benefit system that you wish to calculate income components under through options {cmd:sys} or {cmd:sysfile};
+secondly, defining the families who these incomes will be calculated for through the {it:famvar} variables;
+thirdly, specifying the income measures that you wish {cmd:fortax} to calculate through {cmd:netout}.
+
+{title:Tax and benefit systems}
+
+{p 4 4 2}To perform any calculations, the FORTAX library requires that an appropriate tax and benefit system is specified. 
+Only a single system may be specified on a call to {cmd:fortax}. Multiple systems may be handled 
+by either a series of calls, or by potentially making use of appropriate if/in conditioning. There are two
+alternative ways of specifying the tax and transfer system: 
+
+{p 4 8 2}{cmd:sys(}{it:sysname}{cmd:)} will load a system with internal name {it:sysname} from a database of system 
+files which is stored in the compiled plugin file and can not be modified. This method is recommended for most users.
+Type {cmd:fortax, listsys} to list the systems which are available
+
+{p 4 8 2}{cmd:sysfile(}{it:filename}{cmd:)} will load an external FORTAX system file {it:filename}. Note that the
+full path should be included when specifying {it:filename}.
+
+{p 4 4 2}Regardless of how systems are specified, all tax and benefit system parameters may be subjected to automatic price uprating:
+
+{p 4 8 2}{cmd:uprate(}{it:real}{cmd:)} will scale all monetary values in the tax and benefit system by the amount 
+{it:real}, where {it:real} is both strictly positive and non-missing. If {cmd:uprate} is not specified it takes the value of {cmd:1}
+(no uprating).
+
+{title:Family information}
+
+{p 4 4 2}{cmd:fortax} requires information regarding incomes and family circumstances. Stata observations correspond
+to the level of the family, and the family characteristics must be stored as numeric Stata variables. The list of
+family characteristics that may be set through the {it:famvar} options is available by typing {cmd:fortax, listfam}.
+For example, {it:earn1(var1)} would set {it:earn1} (the earnings of adult 1) equal to the Stata variable {it:var1}. Any family
+characteristics which are not explictly set are given their default values. Note also that missing values are 
+treated as if no value had been specified for the respective observations (so the default is again applied).
+
+{title:FORTAX output}
+
+{p 4 4 2}Given the tax and benefit system specified by {cmd:sys} or {cmd:sysfile}, together with the family characteristics 
+specified through the {it:famvar} options, {cmd:fortax} will return a number of income measures that are then accessible in 
+Stata. 
+
+{p 4 8 2}{cmd:netout} specifies the income measures that are returned to Stata. The list of income measures that
+are accessible is available by typing {cmd:fortax, listnet}. If {cmd:netout} is not specified, then only {it:dispinc} 
+(family disposable income) will be returned. Unless this option is combined with {cmd:netoutvar} (see below) variables 
+will generated with a variable name equal to the short name. Note that the cost of requesting further variables 
+(in a single call to {cmd:fortax}) is negligble as these are calculated internally by the FORTAX library.
+
+{p 4 8 2}{cmd:netoutvar} specifies the Stata variable names for all the income measures specified in {cmd:netout} (the order
+of variables is the same as in {cmd:netout}).
+
+{p 4 8 2}{cmd:replace} will replace the contents of existing variables. If variables already exist, and {cmd:replace} is not specified,
+and error will be raised.
+
+{p 4 8 2}{cmd:label} writes a descriptive variable label for any income component that is specified in {cmd:netout}.
+
+{title:Further notes and current limitations}
+
+{p 4 4 2}When specifying {it:famvar} variables that are of logical type (true or false) values of zero correspond to false;
+all other values are interpreted as being true.
+
+{p 4 4 2}If options {cmd:listsys}, {cmd:listnet} or {cmd:listfam} are specified, then any further options will be ignored. 
+These options may also be combined.
+
+{p 4 4 2}To simplify the calling syntax you may wish to consider writing a Stata program that calls {cmd:fortax}. This will be particularly relevant if the names of family characteristic variables are constant in your application.
+
+{p 4 4 2}The FORTAX library does not currently model disability related benefits, and incomes for non-working age families. 
+See the FORTAX reference manual (available from
+{browse "http://www.ucl.ac.uk/~uctpajs/fortax.htm"}) for a discussion of the implementation of the UK tax and benefit systems.
+
+{title:Examples}
+
+{p 4 4 2}{inp: . fortax, listsys listfam listnet}
+
+{p 4 4 2}{inp: . fortax, sys(april02) earn1(var1) hrs1(var2) replace}
+
+{p 4 4 2}{inp: . fortax, sys(april02) uprate(1.1) earn1(var1) hrs1(var2) kidage1(var3) netout(dispinc incsup chben) replace label}
+
+{title:License}
+
+{p 4 4 2}FORTAX for Stata is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+{p 4 4 2}FORTAX for Stata is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+{p 4 4 2}You should have received a copy of the GNU General Public License
+along with FORTAX for Stata.  If not, see {browse "http://www.gnu.org/licenses/"}.
+
+{title:Author}
+
+{p 4 4 2}Andrew Shephard, University College London and Institute for Fiscal Studies {browse "mailto:andrubuntu@gmail.com"}.
