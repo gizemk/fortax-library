@@ -1,0 +1,5 @@
+@^,date,label,@_numbands.range.integer,@_pa.amount.d,@_mma.amount.d,@~mma,@_ctc.amount.d,@_ctcyng.amount.d,@_mmarate.rate.d,@_ctctaper.rate.d,@_c4rebate.rate.d,@_bands.amount.da,@_rates.rate.da,source
+@?,"Date",,"Bands","Personal Allowance",m m a,
+@#,20000101,historic,3,3000,13,113,1113,3,0.3,.13,33,3333,0.113
+@#,20000401,historic,4,4000,14,114,1114,4,0.4,0.14,44,4444,0.114
+@#,20010101,historic,5,5000,15,115,1115,5,0.5,0.15,55,5555,0.115
