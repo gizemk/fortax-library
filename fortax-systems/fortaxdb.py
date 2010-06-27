@@ -119,15 +119,15 @@ class fortaxVar():
             print 'error: no label column'
             sys.exit()
             
-        idDate  = [int(0) for ixD in range(self.numRec)]
-        idLabel = ['' for ixD in range(self.numRec)]
+        self.idDate  = [int(0) for ixD in range(self.numRec)]
+        self.idLabel = ['' for ixD in range(self.numRec)]
         for ixD in range(self.numRec):
             if not checkDate(self.db[ixD][dateInd]):
                 print 'error: invalid YYYYMMDD date format in '+fname
                 sys.exit()
             else:
-                idDate[ixD]  = self.db[ixD][dateInd]
-                idLabel[ixD] = self.db[ixD][labelInd]
+                self.idDate[ixD]  = int(self.db[ixD][dateInd])
+                self.idLabel[ixD] = self.db[ixD][labelInd]
                 
         #now get variables
         self.varlist = []
@@ -283,3 +283,25 @@ def checkDate(datestr):
         return False
     
     return True
+    
+def getFortaxSys(db,date):
+    if not checkDate(date):
+        print 'error: invalid date'
+        sys.exit()
+    else:
+        intDate = int(date)
+        
+    for thisDb in db:
+        dates = sorted(thisDb.idDate)
+        if date<dates[0]:
+            print 'error: requested date is out-of-range'
+            sys.exit()
+        if intDate>=dates[-1]:
+            dateIndex = thisDb.numRec-1
+        else:
+            for ixD in range(thisDb.numRec-1):
+                
+                if intDate>=dates[ixD] and intDate<dates[ixD+1]:
+                    dateIndex = ixD
+        getDate = dates[dateIndex]
+        print getDate

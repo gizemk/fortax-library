@@ -89,7 +89,8 @@ def main():
             sys.exit()
             
         sysfile = csv.reader(open(sysname), delimiter=',', quotechar='"')
-
+    
+    fortaxdb.getFortaxSys(fdb,'20021231')
     
 if __name__ == "__main__":
     main()
