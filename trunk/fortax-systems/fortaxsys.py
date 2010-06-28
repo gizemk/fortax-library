@@ -80,17 +80,17 @@ def main():
 
     #construct internal system database
     fdb = []
-    for index, sysname in enumerate(sysNames):        
-        fdb.append(fortaxdb.fortaxVar(sysname,opts,args))
+    for index, fname in enumerate(sysNames):        
+        fdb.append(fortaxdb.fortaxVar(fname,sysComponents[index],opts,args))
         
         #check whether file exists
-        if not(os.path.isfile(sysname)):
-            print 'file '+sysname+' does not exist'
-            sys.exit()
+      #  if not(os.path.isfile(sysname)):
+        #    print 'file '+sysname+' does not exist'
+          #  sys.exit()
             
-        sysfile = csv.reader(open(sysname), delimiter=',', quotechar='"')
+       # sysfile = csv.reader(open(sysname), delimiter=',', quotechar='"')
     
-    fortaxdb.getFortaxSys(fdb,'20021231')
+    fortaxdb.writeXml(fdb,'20021231')
     
 if __name__ == "__main__":
     main()

@@ -38,17 +38,18 @@ class fortaxStorageName():
     logicalarray  = ['la','logarray','logicalarray']
     doublearray   = ['da','dblearray','doublearray']
     
+
+    
 class varClass(object):
     """Class docstring."""
 
-    def __init__(self, varindex, varname, vartype, varstorage, vardata, varlabel):
+    def __init__(self, varindex, varname, vartype, vararray, vardata, varperiod, varlabel):
         """Method docstring."""
         self.varindex = varindex
         self.varname = varname
         self.vartype = vartype
-        self.varstorage = varstorage
-        self.period = -1
-        self.source = -1
+        self.vararray = vararray
+        self.period = varperiod
         self.label = varlabel
         self.data = vardata
         
@@ -66,7 +67,15 @@ class varClass(object):
         return -1
     
 class fortaxVar():
-    def __init__(self,fname,opts,args):
+    
+    def find(self, prefix, varname, header):
+        for h, hstr in enumerate(header):
+            if hstr[0:len(prefix)]==prefix:
+                if hstr[len(prefix):]==varname:
+                    return h
+        return -1
+
+    def __init__(self,fname,sysname,opts,args):
         
         #check whether file exists
         if not(os.path.isfile(fname)):
@@ -77,9 +86,11 @@ class fortaxVar():
         sysfile = csv.reader(open(fname), delimiter=',', quotechar='"')
 
         #initialize
+        self.sysname = sysname
         self.db = []
         existHeader = False
         self.existLabel  = False
+        self.existPeriod = False
         self.numRec = 0
         #read file
         for row in sysfile:
@@ -99,7 +110,13 @@ class fortaxVar():
                     sys.exit()                    
                 self.label = row2
                 self.existLabel = True
-
+            elif row2[0]=='@.':
+                if self.existPeriod:
+                    print 'error: multiple period records detected in '+fname
+                    sys.exit()                    
+                self.period = row2
+                self.existPeriod = True
+                
         #check header exists
         if not existHeader:
             print 'error: no header record exists in '+fname
@@ -132,21 +149,40 @@ class fortaxVar():
         #now get variables
         self.varlist = []
         self.getFortaxVar()
+        self.missingFortaxVar()
+        #self.checkFortaxVar()
+        #clean up junk
+        del self.db
+        del self.header
+        #del self.idDate
+        del self.existLabel
+        del self.existPeriod
+        del self.idLabel
+        del self.label
+        del self.period
         
+    def missingFortaxVar(self):
         for var in self.varlist:
-            var.findSource(self.header)
-            var.findPeriod(self.header)
-        
-            
+            for ixD in range(self.numRec):
+                if var.data[ixD]=='':
+                    if var.vartype=='range':
+                        var.data[ixD] = '0' 
+                    if var.vartype in ('amount','minamount','rate'):
+                        var.data[ixD] = '0.0'
+                    if var.vartype in ('bool'):
+                        var.data[ixD] = '0'
+                
     def getFortaxVar(self):
         for h, hstr in enumerate(self.header):
             if hstr[0:2]=='@_':
                 thisvar=hstr[2:].split('.')
-                valid, varName, varType, varStorage = self.validVarConstruct(thisvar)
+                valid, varName, varType, varArray = self.validVarConstruct(thisvar)
                 if not valid:
-                    print 'error: ' + thisvar + ' is not a valid fortax variable construct'
+                    print 'error: ' + hstr + ' is not a valid fortax variable construct'
                     sys.exit()
+                    
                 varData = []
+               
                 for ixD in range(self.numRec):
                     try:
                         varData.append(self.db[ixD][h])
@@ -155,33 +191,32 @@ class fortaxVar():
                         sys.exit()
                         
                 if self.existLabel:
-                    varLabel = self.label
+                    varLabel = self.label[h]
                 else:
                     varLabel = varName
                     
-                self.varlist.append(varClass(h,varName,varType,varStorage,varData,varLabel))
-            
+                varPeriod = self.period[h]
+
+                self.varlist.append(varClass(h,varName,varType,varArray,varData,varPeriod,varLabel))
+        
     def validVarConstruct(self,thisvar):
         """Check whether we have a valid fortax variable construct."""
         validLength = self.validVarConstructLength(thisvar)
         if not validLength:
-            return False        
+            return False, '', '', False
         validName, varName = self.validVarConstructName(thisvar[0])
         if not validName:
-            return False 
-        validType, varType = self.validVarConstructType(thisvar[1])
+            return False, '', '', False 
+        validType, varType, varArray = self.validVarConstructType(thisvar[1])
         if not validType:
-            return False 
-        validStorage, varStorage = self.validVarConstructStorage(thisvar[2])
-        if not validStorage:
-            return False 
-        
-        return True, varName, varType, varStorage
+            return False, '', '', False
+       
+        return True, varName, varType, varArray
     
     def validVarConstructLength(self,varlen):
         """Return True if length 3, False otherwise."""
-        if len(varlen)!=3:
-            print 'variable must specify name, type and storage'
+        if len(varlen)!=2:
+            print 'variable must specify name and type'
             return False
         else:
             return True
@@ -200,21 +235,29 @@ class fortaxVar():
 
     def validVarConstructType(self,vartype):
         """Return True if valid Fortax type, False otherwise."""
-        if vartype in ('rng','range'):
-            type = 'range'
-        elif vartype in ('rate'):
-            type = 'rate'
-        elif vartype in ('a','amt','amount'):
-            type = 'amount'
-        elif vartype in ('ma','minamt','minamount'):
-            type = 'minamount'
-        elif vartype in ('n','null'):
-            type = 'null'
+        indArray = vartype.find('[]')
+        if indArray>0:
+            thisType = vartype[0:indArray]
+            isArray = True
         else:
-            print 'variable type must be range, rate, amount, minamount, null (or abbreviated forms)'
+            thisType = vartype
+            isArray = False
+            
+        if thisType in ('rng','range'):
+            type = 'range'
+        elif thisType in ('rate'):
+            type = 'rate'
+        elif thisType in ('amt','amount'):
+            type = 'amount'
+        elif thisType in ('minamt','minamount'):
+            type = 'minamount'
+        elif thisType in ('bool'):
+            type = 'bool'
+        else:
+            print 'variable type must be range, rate, amount, minamount, bool (or abbreviated forms)'
             return False, ''
     
-        return True, type
+        return True, type, isArray
     
     def validVarConstructStorage(self,varStorage):
         """Return True if valid Fortax storage, False otherwise."""
@@ -284,7 +327,7 @@ def checkDate(datestr):
     
     return True
     
-def getFortaxSys(db,date):
+def getFortaxSysIndex(db,date):
     if not checkDate(date):
         print 'error: invalid date'
         sys.exit()
@@ -304,4 +347,38 @@ def getFortaxSys(db,date):
                 if intDate>=dates[ixD] and intDate<dates[ixD+1]:
                     dateIndex = ixD
         getDate = dates[dateIndex]
-        print getDate
+        
+        return thisDb.idDate.index(dates[dateIndex])
+        #
+        #for var in thisDb.varlist:
+        #    print var.varname, var.data[thisDb.idDate.index(dates[dateIndex])]
+        #print thisDb.idDate.index(dates[dateIndex])
+        #
+        #print dates[dateIndex]
+        #
+        #print thisDb.idDate
+
+def writeXml(db,date):
+    dateIndex = getFortaxSysIndex(db,date)
+    print '<?xml version="1.0"?>'
+    print '<fortax>'
+    for thisDb in db:
+        print '<system basename="'+thisDb.sysname+'">'
+        for var in thisDb.varlist:
+            xmlStr = '   <'
+            if var.vartype=='range':
+                xmlStr = xmlStr+'finteger'
+            elif var.vartype in ('amount','minamount','rate'):
+                xmlStr = xmlStr+'fdouble'
+            elif var.vartype in ('bool'):
+                xmlStr = xmlStr+'flogical'
+            
+            if var.vararray:
+                xmlStr = xmlStr+'array'
+
+            xmlStr = xmlStr + ' name="'+var.varname+'" value="'
+            xmlStr = xmlStr + var.data[dateIndex]
+            xmlStr = xmlStr + '">'
+            print xmlStr
+        print '</system>'
+    print '</fortax>'
