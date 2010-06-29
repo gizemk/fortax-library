@@ -83,6 +83,18 @@ def main():
     for index, fname in enumerate(sysNames):        
         fdb.append(fortaxdb.fortaxVar(fname,sysComponents[index],opts,args))
         
+    #obtain file links from database
+    fdb_files = fortaxdb.fortaxFileLinks(fdb)
+
+    #construct database from linked files
+    fdb_links = []
+    for fname in fdb_files:
+        fdb_links.append(fortaxdb.fortaxVar(fname.strip('"'),fname,opts,args))
+    
+    #verify whether nested linking
+    if fortaxdb.recursiveLinking(fdb_links):
+        print 'error: a linked file may not link to another file'
+        
         #check whether file exists
       #  if not(os.path.isfile(sysname)):
         #    print 'file '+sysname+' does not exist'
@@ -90,7 +102,7 @@ def main():
             
        # sysfile = csv.reader(open(sysname), delimiter=',', quotechar='"')
     
-    fortaxdb.writeXml(fdb,'20021231')
+    fortaxdb.writeXml(fdb,fdb_links,'20021231')
     
 if __name__ == "__main__":
     main()

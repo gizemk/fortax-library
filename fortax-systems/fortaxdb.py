@@ -21,6 +21,7 @@ import csv
 import sys
 import os.path
 import datetime
+from operator import itemgetter
 
 class fortaxStorage():
     integer      = 1
@@ -52,7 +53,11 @@ class varClass(object):
         self.period = varperiod
         self.label = varlabel
         self.data = vardata
-        
+        self.fileLink = [False for ixD in range(len(self.data))]
+        for ixD in range(len(self.data)):
+            if self.data[ixD][0:2]=='@>':
+                self.fileLink[ixD] = True
+
     def findPeriod(self,header):
         self.period = self.find('@.',self.varname,header)
            
@@ -76,7 +81,7 @@ class fortaxVar():
         return -1
 
     def __init__(self,fname,sysname,opts,args):
-        
+                
         #check whether file exists
         if not(os.path.isfile(fname)):
             print 'file '+fname+' does not exist'
@@ -104,6 +109,14 @@ class fortaxVar():
                     sys.exit()                    
                 self.header = row2
                 existHeader = True
+                self.indexFile = False
+            elif row2[0]=='@!':
+                if existHeader:
+                    print 'error: multiple header records detected in '+fname
+                    sys.exit()                    
+                self.header = row2
+                existHeader = True
+                self.indexFile = True
             elif row2[0]=='@?':
                 if self.existLabel:
                     print 'error: multiple label records detected in '+fname
@@ -116,7 +129,7 @@ class fortaxVar():
                     sys.exit()                    
                 self.period = row2
                 self.existPeriod = True
-                
+        
         #check header exists
         if not existHeader:
             print 'error: no header record exists in '+fname
@@ -136,8 +149,25 @@ class fortaxVar():
             print 'error: no label column'
             sys.exit()
             
+        if self.indexFile:
+            try:
+                indexInd = self.header.index('index')
+            except:
+                print 'error: index file but no index column'
+                sys.exit()
+
+    
+        #sort data by label, date, index    
+        if self.indexFile:
+            self.db = sorted(self.db, key=itemgetter(indexInd))
+        self.db = sorted(self.db, key=itemgetter(dateInd))
+        self.db = sorted(self.db, key=itemgetter(labelInd))
+        
+        
         self.idDate  = [int(0) for ixD in range(self.numRec)]
         self.idLabel = ['' for ixD in range(self.numRec)]
+        if self.indexFile:
+            self.idIndex = [int(0) for ixD in range(self.numRec)]
         for ixD in range(self.numRec):
             if not checkDate(self.db[ixD][dateInd]):
                 print 'error: invalid YYYYMMDD date format in '+fname
@@ -145,21 +175,26 @@ class fortaxVar():
             else:
                 self.idDate[ixD]  = int(self.db[ixD][dateInd])
                 self.idLabel[ixD] = self.db[ixD][labelInd]
-                
+                if self.indexFile:
+                    self.idIndex[ixD] = self.db[ixD][indexInd]
+
+    
         #now get variables
         self.varlist = []
         self.getFortaxVar()
-        self.missingFortaxVar()
+        #self.missingFortaxVar()
         #self.checkFortaxVar()
         #clean up junk
         del self.db
         del self.header
         #del self.idDate
+        if self.existPeriod:
+            del self.period
+        if self.existLabel:
+            del self.label
         del self.existLabel
         del self.existPeriod
         del self.idLabel
-        del self.label
-        del self.period
         
     def missingFortaxVar(self):
         for var in self.varlist:
@@ -183,19 +218,41 @@ class fortaxVar():
                     
                 varData = []
                
-                for ixD in range(self.numRec):
-                    try:
-                        varData.append(self.db[ixD][h])
-                    except:
-                        print 'error: data missing for '+varName #+' in '+self.fname
-                        sys.exit()
+                #if self.indexFile:
+                #    for ixD in range(self.numRec):
+                #        print self.db[ixD][h]
+                #    sys.exit()
+                    
+                if self.indexFile:
+                    newObs = True
+                    for ixD in range(self.numRec):
+                        if newObs:
+                            this = []
+                            newObs = False
+                        this.append(self.db[ixD][h])
+                        
+                        if ixD<self.numRec-1:
+                            if (self.idLabel[ixD]!=self.idLabel[ixD+1]) or (self.idDate[ixD]!=self.idDate[ixD+1]):
+                                varData.append(this)
+                                newObs = True
+                    varData.append(this)
+                else:
+                    for ixD in range(self.numRec):
+                        try:
+                            varData.append(self.db[ixD][h])
+                        except:
+                            print 'error: data missing for '+varName #+' in '+self.fname
+                            sys.exit()
                         
                 if self.existLabel:
                     varLabel = self.label[h]
                 else:
                     varLabel = varName
                     
-                varPeriod = self.period[h]
+                if self.existPeriod:
+                    varPeriod = self.period[h]
+                else:
+                    varPeriod = -1
 
                 self.varlist.append(varClass(h,varName,varType,varArray,varData,varPeriod,varLabel))
         
@@ -358,7 +415,39 @@ def getFortaxSysIndex(db,date):
         #
         #print thisDb.idDate
 
-def writeXml(db,date):
+def fortaxFileLinks(db):
+    fileLinks = []
+    for thisDb in db:
+        for var in thisDb.varlist:
+            for ixD in range(thisDb.numRec):
+                if var.data[ixD][0:2]=='@>':
+                    thisLink = var.data[ixD][2:]
+                    try:
+                        fileLinks.index(thisLink)
+                    except:
+                        fileLinks.append(thisLink)
+    return fileLinks
+                
+def recursiveLinking(db):
+    for thisDb in db:
+        for var in thisDb.varlist:
+            for ixD in range(len(var.data)): #range(thisDb.numRec):
+                if isinstance(var.data[ixD],list):
+                    for a in var.data[ixD]:
+                        if a[0:2]=='@>':
+                            return True
+                else:
+                    if var.data[ixD][0:2]=='@>':
+                            return True
+    return False
+
+def getLinkValue(db_name,db_link,date):
+    for thisDb in db_link:
+        if thisDb.sysname==db_name:
+            dateIndex = getFortaxSysIndex(thisDb,date)
+            print dateIndex
+    return "0"
+def writeXml(db,db_link,date):
     dateIndex = getFortaxSysIndex(db,date)
     print '<?xml version="1.0"?>'
     print '<fortax>'
@@ -375,9 +464,13 @@ def writeXml(db,date):
             
             if var.vararray:
                 xmlStr = xmlStr+'array'
-
+            if var.fileLink[dateIndex]:
+                linkVal = getLinkValue(var.data[dateIndex][2:],db_link,date)
+            else:
+                linkVal = var.data[dateIndex]
+                
             xmlStr = xmlStr + ' name="'+var.varname+'" value="'
-            xmlStr = xmlStr + var.data[dateIndex]
+            xmlStr = xmlStr + linkVal
             xmlStr = xmlStr + '">'
             print xmlStr
         print '</system>'
