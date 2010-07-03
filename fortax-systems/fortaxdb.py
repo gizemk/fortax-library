@@ -22,24 +22,6 @@ import sys
 import os.path
 import datetime
 from operator import itemgetter
-
-class fortaxStorage():
-    integer      = 1
-    logical      = 2
-    double       = 3
-    integerarray = 4
-    logicalarray = 5
-    doublearray  = 6
-
-class fortaxStorageName():
-    integer  = ['i','int','integer']
-    logical  = ['l','log','logical']
-    double   = ['d','dble','double']
-    integerarray  = ['ia','intarray','integerarray']
-    logicalarray  = ['la','logarray','logicalarray']
-    doublearray   = ['da','dblearray','doublearray']
-    
-
     
 class varClass(object):
     """Class docstring."""
@@ -47,29 +29,17 @@ class varClass(object):
     def __init__(self, varindex, varname, vartype, vararray, vardata, varperiod, varlabel):
         """Method docstring."""
         self.varindex = varindex
-        self.varname = varname
-        self.vartype = vartype
+        self.varname  = varname
+        self.vartype  = vartype
         self.vararray = vararray
-        self.period = varperiod
-        self.label = varlabel
-        self.data = vardata
+        self.period   = varperiod
+        self.label    = varlabel
+        self.data     = vardata
         self.fileLink = [False for ixD in range(len(self.data))]
+        
         for ixD in range(len(self.data)):
             if self.data[ixD][0:2]=='@>':
                 self.fileLink[ixD] = True
-
-    def findPeriod(self,header):
-        self.period = self.find('@.',self.varname,header)
-           
-    def findSource(self,header):
-        self.source = self.find('@~',self.varname,header)
-        
-    def find(self, prefix, varname, header):
-        for h, hstr in enumerate(header):
-            if hstr[0:len(prefix)]==prefix:
-                if hstr[len(prefix):]==varname:
-                    return h
-        return -1
     
 class fortaxVar():
     
@@ -91,39 +61,40 @@ class fortaxVar():
         sysfile = csv.reader(open(fname), delimiter=',', quotechar='"')
 
         #initialize
-        self.sysname = sysname
-        self.db = []
-        existHeader = False
-        self.existLabel  = False
-        self.existPeriod = False
-        self.numRec = 0
-        #read file
+        
+        self.sysname     = sysname   #system name
+        db               = []        #data in file fname
+        existHeader      = False     #if a file header exists
+        self.existLabel  = False     #if labels exist for variable
+        self.existPeriod = False     #if period exist for variable        
+        self.indexFile   = False     #if file is index file
+        
+        #read sysfile line by line
+        
         for row in sysfile:
             row2 = [x.strip() for x in row]
-            if row2[0]=='@#':
-                self.db.append(row2)
-                self.numRec = self.numRec+1
-            elif row2[0]=='@^':
+            if row2[0]=='@#':      #data line
+                db.append(row2)
+            elif row2[0]=='@^':    #header line
                 if existHeader:
                     print 'error: multiple header records detected in '+fname
                     sys.exit()                    
                 self.header = row2
                 existHeader = True
-                self.indexFile = False
-            elif row2[0]=='@!':
+            elif row2[0]=='@!':    #header line of index file
                 if existHeader:
                     print 'error: multiple header records detected in '+fname
                     sys.exit()                    
                 self.header = row2
                 existHeader = True
                 self.indexFile = True
-            elif row2[0]=='@?':
+            elif row2[0]=='@?':    #label line
                 if self.existLabel:
                     print 'error: multiple label records detected in '+fname
                     sys.exit()                    
                 self.label = row2
                 self.existLabel = True
-            elif row2[0]=='@.':
+            elif row2[0]=='@.':    #period line
                 if self.existPeriod:
                     print 'error: multiple period records detected in '+fname
                     sys.exit()                    
@@ -156,36 +127,49 @@ class fortaxVar():
                 print 'error: index file but no index column'
                 sys.exit()
 
-    
-        #sort data by label, date, index    
+        #sort data by label, date, index
         if self.indexFile:
-            self.db = sorted(self.db, key=itemgetter(indexInd))
-        self.db = sorted(self.db, key=itemgetter(dateInd))
-        self.db = sorted(self.db, key=itemgetter(labelInd))
+            db = sorted(db, key=itemgetter(indexInd))
+            
+        db = sorted(db, key=itemgetter(dateInd))
+        db = sorted(db, key=itemgetter(labelInd))
+
+
         
+        #number of entries in db
+        self.numRec = len(db)
         
-        self.idDate  = [int(0) for ixD in range(self.numRec)]
-        self.idLabel = ['' for ixD in range(self.numRec)]
-        if self.indexFile:
-            self.idIndex = [int(0) for ixD in range(self.numRec)]
+        #for each line in db, create lists with date and label information
+        #dates will be stored as integers
+        #self.idDate  = [int(0) for ixD in range(self.numRec)]
+        #self.idLabel = ['' for ixD in range(self.numRec)]
+        self.idDate = []
+        self.idLabel = []
+        self.idDate2 = []
+        self.idLabel2 = []    
+        #if self.indexFile:
+        #    self.idIndex = [int(0) for ixD in range(self.numRec)]
+            
+        #check whether the date is valid
         for ixD in range(self.numRec):
-            if not checkDate(self.db[ixD][dateInd]):
+            if not checkDate(db[ixD][dateInd]):
                 print 'error: invalid YYYYMMDD date format in '+fname
                 sys.exit()
             else:
-                self.idDate[ixD]  = int(self.db[ixD][dateInd])
-                self.idLabel[ixD] = self.db[ixD][labelInd]
-                if self.indexFile:
-                    self.idIndex[ixD] = self.db[ixD][indexInd]
+                self.idDate.append(int(db[ixD][dateInd]))
+                self.idLabel.append(db[ixD][labelInd])
 
-    
-        #now get variables
-        self.varlist = []
-        self.getFortaxVar()
+        for ixD in range(self.numRec):
+            if (ixD==0) or (db[ixD][labelInd]!=db[ixD-1][labelInd]) or (db[ixD][dateInd]!=db[ixD-1][dateInd]):
+                self.idDate2.append(int(db[ixD][dateInd]))
+                self.idLabel2.append(db[ixD][labelInd])
+                        
+        #extract information from the database db
+        self.getFortaxVar(db)
+        
         #self.missingFortaxVar()
         #self.checkFortaxVar()
         #clean up junk
-        del self.db
         del self.header
         #del self.idDate
         if self.existPeriod:
@@ -207,29 +191,29 @@ class fortaxVar():
                     if var.vartype in ('bool'):
                         var.data[ixD] = '0'
                 
-    def getFortaxVar(self):
+    def getFortaxVar(self,db):
+        
+        #varlist will contain the list of components in this system part
+        self.varlist = []
         for h, hstr in enumerate(self.header):
             if hstr[0:2]=='@_':
                 thisvar=hstr[2:].split('.')
+                #check whether we have a valid fortax variable construct
                 valid, varName, varType, varArray = self.validVarConstruct(thisvar)
                 if not valid:
                     print 'error: ' + hstr + ' is not a valid fortax variable construct'
                     sys.exit()
                     
                 varData = []
-               
-                #if self.indexFile:
-                #    for ixD in range(self.numRec):
-                #        print self.db[ixD][h]
-                #    sys.exit()
-                    
+                
+                #if an index file, the data will be a list. note that index is ORDINAL
                 if self.indexFile:
                     newObs = True
                     for ixD in range(self.numRec):
                         if newObs:
                             this = []
                             newObs = False
-                        this.append(self.db[ixD][h])
+                        this.append(db[ixD][h])
                         
                         if ixD<self.numRec-1:
                             if (self.idLabel[ixD]!=self.idLabel[ixD+1]) or (self.idDate[ixD]!=self.idDate[ixD+1]):
@@ -238,22 +222,22 @@ class fortaxVar():
                     varData.append(this)
                 else:
                     for ixD in range(self.numRec):
-                        try:
-                            varData.append(self.db[ixD][h])
-                        except:
-                            print 'error: data missing for '+varName #+' in '+self.fname
-                            sys.exit()
+                        varData.append(db[ixD][h])
                         
+                #read label if it exists, otherwise set equal to variable name
                 if self.existLabel:
                     varLabel = self.label[h]
                 else:
                     varLabel = varName
                     
+                #read period if it exists. this needs to be strictly positive,
+                #otherwise set equal to -1
                 if self.existPeriod:
                     varPeriod = self.period[h]
                 else:
                     varPeriod = -1
 
+                #append to varlist
                 self.varlist.append(varClass(h,varName,varType,varArray,varData,varPeriod,varLabel))
         
     def validVarConstruct(self,thisvar):
@@ -390,30 +374,29 @@ def getFortaxSysIndex(db,date):
         sys.exit()
     else:
         intDate = int(date)
-        
-    for thisDb in db:
-        dates = sorted(thisDb.idDate)
-        if date<dates[0]:
+    
+    if db.indexFile:
+        if date<db.idDate2[0]:
             print 'error: requested date is out-of-range'
             sys.exit()
-        if intDate>=dates[-1]:
-            dateIndex = thisDb.numRec-1
+        if intDate>=db.idDate2[-1]:
+            dateIndex = db.numRec-1
         else:
-            for ixD in range(thisDb.numRec-1):
-                
-                if intDate>=dates[ixD] and intDate<dates[ixD+1]:
+            for ixD in range(len(db.idDate2)):                
+                if intDate>=db.idDate2[ixD] and intDate<db.idDate2[ixD+1]:
+                    dateIndex = ixD        
+    else:
+        if date<db.idDate[0]:
+            print 'error: requested date is out-of-range'
+            sys.exit()
+        if intDate>=db.idDate[-1]:
+            dateIndex = db.numRec-1
+        else:
+            for ixD in range(db.numRec-1):
+                if intDate>=db.idDate[ixD] and intDate<db.idDate[ixD+1]:
                     dateIndex = ixD
-        getDate = dates[dateIndex]
-        
-        return thisDb.idDate.index(dates[dateIndex])
-        #
-        #for var in thisDb.varlist:
-        #    print var.varname, var.data[thisDb.idDate.index(dates[dateIndex])]
-        #print thisDb.idDate.index(dates[dateIndex])
-        #
-        #print dates[dateIndex]
-        #
-        #print thisDb.idDate
+            
+    return dateIndex
 
 def fortaxFileLinks(db):
     fileLinks = []
@@ -441,17 +424,22 @@ def recursiveLinking(db):
                             return True
     return False
 
-def getLinkValue(db_name,db_link,date):
+def getLinkValue(db_name,db_link,var_name,date):
     for thisDb in db_link:
         if thisDb.sysname==db_name:
             dateIndex = getFortaxSysIndex(thisDb,date)
-            print dateIndex
-    return "0"
+            for var in thisDb.varlist:
+                if var.varname==var_name:
+                    return var.data[dateIndex]
+    return None
+
 def writeXml(db,db_link,date):
-    dateIndex = getFortaxSysIndex(db,date)
+
     print '<?xml version="1.0"?>'
     print '<fortax>'
     for thisDb in db:
+        #get date index
+        dateIndex = getFortaxSysIndex(thisDb,date)
         print '<system basename="'+thisDb.sysname+'">'
         for var in thisDb.varlist:
             xmlStr = '   <'
@@ -465,7 +453,10 @@ def writeXml(db,db_link,date):
             if var.vararray:
                 xmlStr = xmlStr+'array'
             if var.fileLink[dateIndex]:
-                linkVal = getLinkValue(var.data[dateIndex][2:],db_link,date)
+                linkVal2 = getLinkValue(var.data[dateIndex][2:],db_link,var.varname,date)
+                linkVal = linkVal2[0]
+                for val in linkVal2[1:]:
+                    linkVal = linkVal + ','+val
             else:
                 linkVal = var.data[dateIndex]
                 
