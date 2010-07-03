@@ -1,4 +1,4 @@
-@!,date,label,index,@_bands.amt,@_bands.rate,,,,,
+@!,date,label,index,@_bands.amt,@_rates.rate,,,,,
 @?,,,,,,,,,,
 @#,19900604,historic,1,20700,0.25,,,,,
 @#,19900604,historic,2,@+big,0.4,,,,,
