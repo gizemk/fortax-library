@@ -1,0 +1,1799 @@
+\documentclass[11pt,thmsa,letter,ukenglish]{article}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage[a4paper=true,ps2pdf=true,pagebackref=true]{hyperref}
+\usepackage[usenames,dvips]{color}
+\usepackage{natbib}
+\usepackage{graphicx,color,psfrag}
+\usepackage{rotating,multirow}
+%\usepackage{bbm}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{listings}
+\usepackage{fullpage}
+%\usepackage{textcomp}
+%\usepackage{moreverb}
+\bibliographystyle{ecta}
+\newcommand{\dint} {\displaystyle\int}
+%\graphicspath{{./figuresdir1/}{./figuresdir2/}{./figuresdir3/}}
+
+\hypersetup{
+    colorlinks = true,
+    linkcolor = BrickRed,
+    anchorcolor = red,
+    citecolor = BrickRed,
+    filecolor = red,
+    pagecolor = red,
+    urlcolor = Blue
+}
+
+\hypersetup{
+    pdftitle =
+        FORTAX: Reference Manual,
+    pdfauthor =
+        Andrew Shephard
+}
+
+\lstloadlanguages{[95]Fortran}
+
+\lstnewenvironment{fortrancode}[1][]{
+\lstset{#1,language={[95]Fortran},
+    keywordstyle=\color{blue},
+    basicstyle=\footnotesize\ttfamily,
+    commentstyle=\color{OliveGreen},
+    stringstyle=\color{red},
+    breaklines=true,
+    breakatwhitespace=true,
+    tabsize=4,
+    showstringspaces=false,
+    prebreak=\&,
+    emph={pure,\_\$integer,elemental},emphstyle=\color{blue},
+    emph={[2]define,ifdef,ifndef,else,endif,undef,include},emphstyle={[2]\color{red}}
+    } } { }
+
+
+\lstdefinelanguage{rock}
+  {morekeywords={\_\$logical},
+    sensitive=false,
+    morecomment=[l]{//},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]",
+  }
+
+\lstnewenvironment{includecode}[1][]{
+\lstset{#1,keywordstyle=\color{blue},
+    basicstyle=\footnotesize\ttfamily,
+    commentstyle=\color{green},
+    stringstyle=\color{red},
+    breaklines=true,
+    breakatwhitespace=true,
+    tabsize=4,
+    %prebreak=\&,
+    emph={\_\$integer,\_\$double,\_\$logical,\_\$integerarray,\_\$doublearray,\_\$logicalarray,\_\$header,\_\$footer},emphstyle=\color{blue},
+    emph={[2]define,undef,include},emphstyle={[2]\color{red}}
+    } } { }
+
+\lstnewenvironment{csvcode}[1][]{
+\lstset{#1,basicstyle=\footnotesize\ttfamily,
+    breaklines=true,
+    breakatwhitespace=true,
+    tabsize=4
+    } } { }
+
+
+\lstnewenvironment{xmlcode}[1][]{
+\lstset{#1,language=XML,
+    keywordstyle=\color{blue},
+    basicstyle=\footnotesize\ttfamily,
+    commentstyle=\color{green},
+    stringstyle=\color{red},
+    breaklines=true,
+    breakatwhitespace=true,
+    tabsize=4,
+    frame=lines,
+    showstringspaces=false,
+    emph={fortax,system,finteger,fdouble,flogical,fintegerarray,fdoublearray,flogicalarray},emphstyle=\color{blue},
+    } } { }
+
+%\usepackage{listings}
+%\lstloadlanguages{[95]Fortran}
+% \lstloadlanguages{[GNU]C++,Perl,sh}
+% \lstnewenvironment{listing}[2][]{ \vspace{1ex}\noindent
+%   \lstset{ basicstyle=\ttfamily,
+%            frame=tb,
+%            columns=fullflexible,
+%            framexrightmargin=-.2\textwidth,
+%            breaklines=true,
+%            prebreak=/,
+%            caption=#1,
+%            label=#2
+%           } }{ }
+
+\bibliographystyle{ecta}
+
+\newcommand{\mailto}[1]{\href{mailto:#1}{#1}}
+
+\title{FORTAX: Reference Manual\thanks{Email: \texttt{\mailto{andrubuntu@gmail.com}}. 
+Many thanks to Jonathan Shaw for his suggestions and comments.}}
+\author{Andrew Shephard}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\section{Introduction to FORTAX}
+
+The FORTAX project is centered around the development of the FORTAX library, a micro-simulation tax library programmed in Fortran by Andrew Shephard, with the UK system implementation programmed by Andrew Shephard and Jonathan Shaw. It provides detailed representations of UK tax and transfer systems over time (currently covering the period 1991--2009). The library is efficient and flexible, and is ideally suited to applications where accurate budget sets or components of income need to be calculated repeatedly. The estimation and simulation of labour supply models are therefore natural candidates for the use of the  FORTAX library. It has been used extensively in \cite{blundell+shephard2009} and in on-going work by \cite{blundell+costadias+meghir+shaw2009}. Other programs that are part of the FORTAX project, including FORTAX for Stata (which provides easy access to the library from within Stata), the FORTAX Calculator (which provides an intuitive graphical environment for calculating and comparing incomes and budget constraints), and FORTAX Online (an interactive web-based version of the calculator), all use the FORTAX library. FORTAX is freely available and is released under the \href{http://www.gnu.org/licenses/gpl.html}{GNU General Public License version 3 (GPLv3)}. This document provides a guide to using and developing the FORTAX library, and it should be cited in research that uses FORTAX in any form. It assumes familiarity with the Fortran programming language and the Fortran pre-processor (FPP). 
+
+% The document begins in section \ref{sec:overview} by describing the modules of FORTAX, and in section \ref{sec:code} the various routines that features in each of these modules is explained. Section \ref{sec:includes} explains how FORTAX makes use of FPP to achieve largely self-maintaining code. The file dependencies and compilation of FORTAX are described in section \ref{sec:compile}, while the FORTAX system file format is described in section \ref{sec:fortaxformat}. The current implementation of the UK tax and transfer system is detailed in section \ref{sec:uksys}. Some brief sample code that illustrates the use of FORTAX are provided in section \ref{sec:example}.
+
+%
+% An important part of FORTAX is that tax systems are defined not just by a set of parameters, but also in terms of what they represent in some sense. This therefore facilitates operations to be performed on parts of the tax system with great ease. Moreover, the largely self-maintaining code in FORTAX allows users without large programming experience to easily incorportate new features in the tax system.
+
+\section{Overview of FORTAX library}\label{sec:overview}
+
+The FORTAX library contains a number of modules defined within the following files:
+\begin{enumerate}
+ \item \texttt{fortax\_type.f90} defines the main derived types that describe families, the tax system, and the information returned by the calculation routines.
+ \item \texttt{fortax\_calc.f90} is the main calculation module. It calculates various measures and components of income based upon its interpretation of the tax system.
+ \item \texttt{fortax\_prices.f90} provides access to various price uprating routines and date utilities.
+ \item \texttt{fortax\_read.f90} reads files which describe the tax system into memory.
+ \item \texttt{fortax\_write.f90} writes files which describe the tax system in the native FORTAX file format.
+ \item \texttt{fortax\_util.f90} provides a number of useful support routines and conversion utilities that are used in various parts of FORTAX.
+ \item \texttt{fortax\_kinks.f90} calculates piecewise linear schedules for net-income (or any other component of income), varying either earnings or hours of work.
+ \item \texttt{fortax\_extra.f90} provides additional functionality by operating on the tax system. It is specific to the particular system implementation.
+\end{enumerate}
+
+\subsection{Additional files}\label{sec:additionalfiles}
+
+The module contained in \texttt{fortax\_realtype.f90} defines real data types used in FORTAX, and is used in all the other modules. The tax system read/write capabilities of FORTAX in \texttt{fortax\_read.f90} and \texttt{fortax\_write.f90} make use of code from the \texttt{xml-fortran} project,\footnote{Available to download from \url{http://xml-fortran.sourceforge.net/}.} and I do not document them here. The relevant \texttt{xml-fortran} source files required by the FORTAX library are \texttt{read\_xml\_prims.f90}, \texttt{write\_xml\_prims.f90}, and \texttt{xmlparse.f90}, together with a small number of included files in the directory \texttt{`includes/xml'}. Additionally, the files \texttt{xmlfortax\_t.f90} and \texttt{xmltaxben\_t.f90} provide the template that defines the file structure for both TAXBEN and FORTAX system files, and these have been generated using programs from the \texttt{xml-fortran} project. Furthermore, a large number of ``include'' files are located in the subdirectories \texttt{`includes'} and \texttt{`includes/system'}. These are used in conjunction with the Fortran pre-processor (FPP), and I discuss these in section \ref{sec:includes}.
+\section{FORTAX source code}\label{sec:code}
+
+\subsection{fortax\_type.f90}\label{sec:fortaxtype}
+The module \texttt{fortax\_type} defines the main derived type structures required by FORTAX and provides various initialization routines. There are three derived types that are of primary interest here and are used extensively in other modules:
+\begin{enumerate}
+    \item \texttt{fam\_t} defines the family type structure, containing information on demographic characteristics, earnings, hours of work, and other information. Anything that can affect the taxes and transfer payments of a family is defined in here.
+    \item \texttt{sys\_t} defines the tax system structure which families of type \texttt{fam\_t} face. It describes all the parameters which are interpreted within \texttt{fortax\_calc.f90}.
+    \item \texttt{net\_t} defines the information returned following calls to the main calculation routines within \texttt{fortax\_calc.f90}. It contains measures of net income, together with various tax amounts and other components of income.
+\end{enumerate}
+
+Note that none of these types are defined ``directly'' within this module, but are rather defined through the use of include files together with preprocessor commands. This is discussed further in section \ref{sec:includes}. The type \texttt{fam\_t} is implicitly defined by the contents of the files \texttt{`includes/fam\_t.inc'} which is responsible for defining all relevant family characteristics, and \texttt{`includes/famad\_t.inc'} which defines relevant adult level characteristics. Extending the family structure then just requires that appropriate entries are made to \texttt{fam\_t.inc} and/or \texttt{famad\_t.inc}. Any changes to these files will be recognized and fully reflected in the entire FORTAX library when compiled. The same applies for type \texttt{net\_t} which is defined in the files \texttt{`includes/nettu\_t.inc'} and \texttt{`includes/netad\_t.inc'} (respectively reflecting the measures of incomes calculated at the level of the tax unit and individual). Any additional item added to these include files will be accessible whenever any variable of type \texttt{net\_t} is.
+
+The definition of the entire tax system through type \texttt{sys\_t} is slightly more complicated as there is nested use of the preprocessor. This includes the file \texttt{`includes/system/syslist.inc'} which tells it about the main components of the tax and transfer system (in the UK context, these would include income support, income tax, national insurance, and others). The parameters within a given part of the system are then defined within the relevant include file (\texttt{incsup.inc}, \texttt{inctax.inc}, \texttt{natins.inc}, etc.) which are references within \texttt{syslist.inc}. This allows additional parameters, or entirely new parts of a tax system, to be introduced easily. Once such a parameter has been defined in the relevant files, it is then only necessary to provide the corresponding code in the main calculation module to interpret these parameters. An implication of this is that it is straightforward to extend FORTAX to implement the tax systems of other countries, or indeed, completely hypothetical systems.
+
+Finally, note that the maximum number of children that information can be stored for is determined by
+the integer parameter \texttt{maxkids}. By default this is equal to 10, but it can easily be changed at compile time by appropriately defining the macro \texttt{\_maxkids\_}.\\
+
+\noindent\texttt{fam\_init} will initialize the family variable \texttt{fam} of type \texttt{fam\_t}, setting logical variables to \texttt{.false.}, integer variables to \texttt{0}, and real(dp) variables to \texttt{0.0\_dp}.\footnote{Note that \texttt{dp} is defined within \texttt{fortax\_realtype.f90}.} If these initializations are not appropriate, then they should be coded here explicitly. Current exceptions to this default initializations are: \texttt{ad(1)\%age = 25}, \texttt{tenure = 1} (own outright), \texttt{region = 1} (North East), \texttt{ctband = 4} (band D), \texttt{banddratio = 1.0\_dp}, and \texttt{intdate = 19900101}.
+
+\begin{fortrancode}
+elemental subroutine fam_init(fam)
+    type(fam_t), intent(inout) :: fam
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{fam\_gen} will return the variable \texttt{fam} of type \texttt{fam\_t}, setting any characteristics to the values that are specified. It will first call \texttt{fam\_init} so that any parameters that are not explicitly referenced will be given their default values. If optional \texttt{correct} is equal to \texttt{.false.} then it will not attempt any consistency checks. Otherwise, it will ensure that any implicit dependencies between the parameters are satisfied (for example, if second adult information is passed it will set \texttt{fam\%couple=.true.} even if \texttt{couple} is not explicitly specified). Note that adult information should be passed by adding a suffix 1 or 2 for the respective adult number, e.g. \texttt{fam = fam\_gen(age1=25,age2=30)}.
+
+\begin{fortrancode}
+pure function fam_gen(...,correct)
+    type(fam_t)       :: fam_gen
+    logical, optional :: correct
+end function
+\end{fortrancode}
+
+\noindent\texttt{fam\_desc} will display the information contained in the family variable \texttt{fam} of type \texttt{fam\_t}. If the optional filename \texttt{fname} is specified then it will write this information to the file \texttt{fname}, otherwise it will be outputted to the default unit.
+
+\begin{fortrancode}
+subroutine fam_desc(fam,fname)
+    use fortax_util, only : getunit, inttostr, fortaxerror
+    use, intrinsic :: iso_fortran_env
+    type(fam_t), intent(in)    :: fam
+    character(len=*), optional :: fname
+end subroutine
+\end{fortrancode}
+    
+\noindent\texttt{net\_init} will initialize the variable \texttt{net} of derived type \texttt{net\_t}. It will initialize logical variables to \texttt{.false.}, integer variables to \texttt{0}, and real(dp) variables to \texttt{0.0\_dp}. The structure \texttt{net\_t} should be suitably defined so that these make sense as default values.
+
+\begin{fortrancode}
+elemental subroutine net_init(net)
+    type(net_t), intent(inout) :: net
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{sys\_init} will initialize the system variable \texttt{sys} of derived type \texttt{sys\_t}. It will initialize logical variables to \texttt{.false.}, integer variables to \texttt{0}, and real(dp) variables to \texttt{0.0\_dp}. The structure \texttt{sys\_t} should be suitably defined so that these make sense as default values.
+
+\begin{fortrancode}
+subroutine sys_init(sys)
+    type(sys_t), intent(inout) :: sys
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{sys\_saveF90} will save the system variable \texttt{sys} of derived type \texttt{sys\_t} as Fortran source code with file name \texttt{fname}. If \texttt{fname} is not specified, then the output will be directed to the default output unit.
+
+\begin{fortrancode}
+subroutine sys_saveF90(sys,fname)
+  use fortax_util, only : getUnit, fortaxError
+  use, intrinsic :: iso_fortran_env
+  type(sys_t),  intent(in) :: sys
+  character(*), intent(in), optional :: fname
+end subroutine
+\end{fortrancode}
+
+This output of this subroutine allows the systems to be ``hard-coded'', rather than reading in system files. The output file assumes the system name is \texttt{sys} and \texttt{dp} from \texttt{fortax\_realtype} must be visible. Sample output is displayed below.
+
+\begin{fortrancode}[title={Extract from \texttt{sys\_saveF90} output},frame=lines]
+! .f90 FORTAX system; generated using sys_saveF90
+
+call sys_init(sys) !deallocates arrays and sets values to default
+
+!inctax
+sys%inctax%numbands=2
+sys%inctax%pa=63.3653846153846_dp
+sys%inctax%mma=33.0769230769231_dp
+sys%inctax%ctc=0.000000000000000E+000_dp
+...
+\end{fortrancode}
+
+\noindent\texttt{fam\_saveF90} will save the family variable \texttt{fam} of derived type \texttt{fam\_t} as Fortran source code with file name \texttt{fname}. If \texttt{fname} is not specified, then the output will be directed to the default output unit. The output file assumes the family variable name is \texttt{fam} and \texttt{dp} from \texttt{fortax\_realtype} must be visible. Sample output follows the interface.
+
+\begin{fortrancode}
+subroutine sys_saveF90(sys,fname)
+  use fortax_util, only : getUnit, fortaxError
+  use, intrinsic :: iso_fortran_env
+  type(sys_t),  intent(in) :: sys
+  character(*), intent(in), optional :: fname
+end subroutine
+\end{fortrancode}
+
+\clearpage
+\begin{fortrancode}[title={Extract from \texttt{fam\_saveF90} output},frame=lines]
+! .f90 FORTAX family; generated using fam_saveF90
+
+call fam_init(fam) !deallocates arrays and sets values to default
+
+!family
+fam%couple=.true.
+fam%married=.false.
+fam%ccexp=40.000000000000000E+000_dp
+fam%maint=10.000000000000000E+000_dp
+fam%nkids=2
+...
+\end{fortrancode}
+
+\subsection{fortax\_prices.f90}\label{sec:fortaxprices}
+
+The module \texttt{fortax\_prices} provides date and price uprating capabilities. It is useful for manipulating tax systems, and (when appropriate) determining which tax system was operational for given family types based upon the value of \texttt{fam\%intdate}. The module defines some variables and a type structure that are private to \texttt{fortax\_prices}. For purposes of price uprating it stores the arrays \texttt{rpidate} and \texttt{rpiindex} that define YYYYMMDD dates and the associated price index. For the purposes of accessing systems, it defines the type \texttt{sysindex\_t} which provides easy look up capabilities for system files.
+
+\begin{fortrancode}
+module fortax_prices
+    integer,  allocatable :: rpidate(:)
+    real(dp), allocatable :: rpiindex(:)
+    type sysindex_t
+        logical                     :: indexinit = .false.
+        integer,        allocatable :: date0(:), date1(:)
+        character(255), allocatable :: fname(:)
+    end type
+contains
+end module
+\end{fortrancode}
+
+\noindent\texttt{loadindex} loads a price index file saved as a comma separated values (CSV) file. If \texttt{filename} is not specified it defaults to \texttt{`prices/rpi.csv'}. Note this path is relative to the executable, and not from where the library is compiled. If no price uprating is to be performed, then it is not necessary for such a file to be present. Otherwise, the first record of this file should contain the number of elements. It then proceeds in the form \emph{date,index}  where \emph{date} is an integer of the form YYYYMMDD and where \emph{index} is a double precision number representing the respective price index level. The list should be sorted by date (in ascending order), and FORTAX does not attempt any consistency checks. An example is provided below.\\
+
+\begin{csvcode}[title={Extract from \texttt{prices/rpi.csv}},frame=lines]
+261,
+19870101,100.0
+19870201,100.4
+19870301,100.6
+19870401,101.8
+19870501,101.9
+...
+\end{csvcode}
+
+\noindent Subroutine \texttt{loadindex} then allocates an integer array \texttt{rpidate(:)} and a real(dp) array \texttt{rpiindex(:)} which are private to \texttt{fortax\_prices}, and copies this information to them.
+
+\begin{fortrancode}
+subroutine loadindex(filename)
+    fortax_util, only : getunit
+    character(len=*), intent(in), optional :: filename
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{getindex} returns the price index associated with the supplied YYYYMMDD date. It accesses data from \texttt{rpidate(:)} and \texttt{rpiindex(:)} and therefore requires that \texttt{loadindex()} is called before.
+
+\begin{fortrancode}
+real(dp) elemental function getindex(date)
+    integer, intent(in) :: date
+end function
+\end{fortrancode}
+
+\noindent\texttt{upratefactor} uprates prices from \texttt{date0} to \texttt{date1} prices (both in YYYYMMDD format). It calls the function \texttt{getindex} and therefore requires that \texttt{loadindex()} has previously been called.
+\begin{fortrancode}
+real(dp) elemental function upratefactor(date0,date1)
+    integer, intent(in) :: date0, date1
+end function
+\end{fortrancode}
+
+\noindent\texttt{upratesys} will uprate the prices in the system file \texttt{sys} by the uprating factor \texttt{factor}. If present, it will replace the date in \texttt{sys\%desc\%prices} with \texttt{newdate}. This makes use of preprocessor commands to automatically perform uprating depending on the original \emph{vartype} description of the tax system elements (see section \ref{sec:includes}). It currently uprates anything declared as being either \emph{amount} or \emph{minamount} through the relevant tax system include files.
+
+\begin{fortrancode}
+subroutine upratesys(sys,factor,newdate)
+    use fortax_type, only : sys_t
+    use fortax_util, only : fortaxwarn
+    type(sys_t), intent(inout)        :: sys
+    real(dp),    intent(in)           :: factor
+    integer,     intent(in), optional :: newdate
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{checkdate} returns \texttt{.true.} or \texttt{.false.} depending on whether \texttt{date} is a valid YYYYMMDD date.
+
+\begin{fortrancode}
+logical pure function checkdate(date)
+    integer, intent(in) :: date
+end function
+\end{fortrancode}
+
+\noindent\texttt{freesysindex} deallocates the data structures stored in \texttt{sysindex\%date0}, \texttt{sysindex\%date1}, \texttt{sysindex\%fname}, and sets \texttt{sysindex\%indexinit} to {.false.} It may be called if the index files are no longer needed by the program calling the FORTAX library.
+
+\begin{fortrancode}
+subroutine freesysindex(sysindex)
+    type(sysindex_t), intent(inout) :: sysindex
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{loadsysindex} will return \texttt{sysindex} of type \texttt{sysindex\_t} using the information contained within \texttt{sysindexfile}. If \texttt{sysindexfile} is not specified it will default to the file \texttt{`systems/sysindex.csv'}. The first line of the CSV file \texttt{sysindexfile} should equal the number of records in the file. Subsequent lines should be of the form \emph{date0,date1,sysname}. Both \emph{date0} and \emph{date1} should be of the form YYYYMMDD, and refer to the start (\emph{date0}) and end (\emph{date1}) dates that the system \emph{sysname} operated from. Note that \emph{sysname} should not contain either a file path or file extension, as these will be determined by \texttt{systemformat} when \texttt{getsysindex} is called. An example is provided below.
+
+\begin{csvcode}[title={Extract from \texttt{systems/sysindex.csv}},frame=lines]
+28
+19900401,19910331,April90
+19910401,19920331,April91
+19920401,19930331,April92
+19930401,19940331,April93
+19940401,19950331,April94
+...
+\end{csvcode}
+
+\begin{fortrancode}
+subroutine loadsysindex(sysindex,sysindexfile)
+    type(sysindex_t), intent(out)          :: sysindex
+    character(len=*), intent(in), optional :: sysindexfile
+end subroutine
+\end{fortrancode}
+
+
+\noindent\texttt{getsysindex} returns information which allows the user to easily identify which system operated at any given YYYYMMDD date as specified in \texttt{sysindex}. \texttt{systemformat} refers to the file format of the required system file. As well as its native format (\texttt{systemformat='fortax'}), FORTAX can also read the undocumented system files used by the IFS tax and benefit model, TAXBEN (\texttt{systemformat='taxben'}), although not all system parameters may be understood if not reflected in the FORTAX code. The use of the native FORTAX format is recommended. It returns the relative file path for this system file in \texttt{sysfilepath}, and the sequence number within \texttt{sysindex} as \texttt{sysnum}. This subroutine calls \texttt{checkdate} to verify the consistency of date before searching for the relevant index position.
+
+\begin{fortrancode}
+subroutine getsysindex(sysindex,date,systemformat, sysfilepath,sysnum)
+    use fortax_util, only : lower
+    type(sysindex_t), intent(in)  :: sysindex
+    integer,          intent(in)  :: date
+    character(len=*), intent(in)  :: systemformat
+    character(255),   intent(out) :: sysfilepath
+    integer,          intent(out) :: sysnum
+end subroutine
+\end{fortrancode}
+
+\subsection{fortax\_read.f90}\label{sec:fortaxread}
+
+\texttt{readtaxparams} reads tax parameters from \texttt{systemfile} into a \texttt{sys\_t} type structure \texttt{sys}. \texttt{systemformat} refers to the file format of the system file to be loaded. It can currently be either equal to `\texttt{fortax}' for the native FORTAX file format (recommended) or `\texttt{taxben}' for the undocumented system files used in the IFS tax and benefit model, TAXBEN. If optional integer \texttt{prices} is specified, it will set \texttt{sys\%desc\%prices} to equal this value (which should be specified as YYYYMMDD). If \texttt{sysfix} is set to \texttt{.true.} then it will call \texttt{taxbensysfix} if \texttt{systemformat} is `\texttt{taxben}', otherwise it is ignored. If the optional YYYYMMDD system date is specified then \texttt{taxbensysfix} will also apply further corrections to TAXBEN system files.
+
+For non-native formats it is necessary to interpret any parameter value into the equivalent element in the \texttt{sys\_t} structure. The reading code for the native FORTAX format is completely self-maintaining and does not need to be changed even if further elements (or completely new structures) are added to tax system definition in \texttt{sys\_t}. This is performed through the use of pre-processing. If an element defined in \texttt{sys\_t} is not present in the system file, then they will default to \texttt{.false.} if a logical variable, \texttt{0} if an integer, and \texttt{0.0\_dp} if real(dp). The FORTAX system files are XML documents (described in section \ref{sec:fortaxformat}), and call XML reading routines to provide the relevant reading capabilities. The FORTAX library makes use of code from the \texttt{xml-fortran} project (see section \ref{sec:additionalfiles}).
+
+\begin{fortrancode}
+subroutine readtaxparams(sys,systemfile,systemformat, prices,sysfix,sysdate)
+    use xml_data_xmltaxben_t, only : read_xml_file_xmltaxben_t, object, namedFields_t, field_t
+    use xml_data_xmlfortax_t, only : read_xml_file_xmlfortax_t, system
+    use fortax_util,          only : StrToDouble, StrToInt, StrToLogical, lower
+    use fortax_type,          only : sys_t, sys_init
+    type(sys_t),       intent(out) :: sys
+    character(len=*),  intent(in)  :: systemfile
+    character(len=*),  intent(in)  :: systemformat
+    integer, optional, intent(in)  :: prices
+    logical, optional, intent(in)  :: sysfix
+    integer, optional, intent(in)  :: sysdate
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{taxbensysfix} applies a number of corrections to the undocumented TAXBEN system files. In particular, it sets values for some necessary parameters that are not contained within the relevant TAXBEN system file, and so are not set when reading. It is called by \texttt{readTaxParams} if \texttt{sysfix=.true.}.
+
+\begin{fortrancode}
+subroutine taxbensysfix(sys,sysdate)
+    use fortax_type, only : sys_t
+    type(sys_t), intent(inout)        :: sys
+    integer,     intent(in), optional :: sysdate
+end subroutine
+\end{fortrancode}
+
+\noindent Additional subroutines are provided through \texttt{fortax\_read\_assign} which is used when reading the native FORTAX system files. They are used in \texttt{readtaxparams} in conjunction with  preprocessor commands, and are private to \texttt{fortax\_read}
+
+\begin{fortrancode}
+interface fortax_read_assign
+    module procedure assign_integer
+    module procedure assign_logical
+    module procedure assign_double
+    module procedure assign_integer_array
+    module procedure assign_logical_array
+    module procedure assign_double_array
+end interface fortax_read_assign
+\end{fortrancode}
+
+\subsection{fortax\_write.f90}
+
+\texttt{fortaxwrite} writes the system file \texttt{sys} to disk with file name \texttt{fname} in the native FORTAX file format (see section \ref{sec:fortaxformat}). This writing code is completely self-maintaining and does not need to be changed even if further elements (or completely new structures) are added to tax system definition in \texttt{sys\_t}. This is performed through the use of pre-processing.
+
+\begin{fortrancode}
+subroutine fortaxwrite(sys,fname)
+    use fortax_type,  only : sys_t
+    use xmlparse,     only : xml_parse, xml_open, xml_close
+    character(len=*), intent(in) :: fname
+    type(sys_t),      intent(in) :: sys
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{fortaxprint} outputs a summary of the tax system \texttt{sys} to the default output unit if \texttt{fname} is not specified. Otherwise, this output summary will be written to disk with file name \texttt{fname}. Note that the file it saves is not the FORTAX file format, but is rather outputted in a format that is easy to read. This printing code is completely self-maintaining and does not need to be changed even if further elements (or completely new structures) are added to tax system definition in \texttt{sys\_t}. This is performed through the use of pre-processing.\\\\
+
+\begin{fortrancode}
+subroutine fortaxprint(sys,fname)
+    use, intrinsic :: iso_fortran_env
+    use fortax_type,  only : sys_t
+    use fortax_util,  only : upper, getunit
+    type(sys_t),      intent(in) :: sys
+    character(len=*), intent(in), optional :: fname
+end subroutine
+\end{fortrancode}
+
+\noindent Additional subroutines are provided through \texttt{ftxmlwrite} and \texttt{ftprint}, and are used when calling the subroutines \texttt{fortaxwrite} and \texttt{ftprint} respectively. They are used in conjunction with pre-processor commands and are private to \texttt{fortax\_write}.
+
+\begin{fortrancode}
+interface ftxmlwrite
+    module procedure xml_write_finteger
+    module procedure xml_write_fdouble
+    module procedure xml_write_flogical
+    module procedure xml_write_fintegerarray
+    module procedure xml_write_fdoublearray
+    module procedure xml_write_flogicalarray
+end interface
+\end{fortrancode}
+
+\begin{fortrancode}
+interface ftprint
+    module procedure ftprint_finteger
+    module procedure ftprint_fdouble
+    module procedure ftprint_flogical
+    module procedure ftprint_fintegerarray
+    module procedure ftprint_fdoublearray
+    module procedure ftprint_flogicalarray
+end interface
+\end{fortrancode}
+
+\subsection{fortax\_calc.f90}\label{sec:fortaxcalc}
+
+The module \texttt{fortax\_calc} performs the main tax and transfer calculations. All functions and subroutines in this module should be declared as pure and should not alter either the tax system variable \texttt{sys} or the family variable \texttt{fam}. The only public subroutine is \texttt{calcnetinc}. This returns net-income \texttt{net} of type \texttt{net\_t} given a family \texttt{fam} of type \texttt{fam\_t}, and tax system \texttt{sys} of type \texttt{sys\_t}. It calls a large number of other subroutines which correspond to the various parts of the tax and transfer system. These are discussed in section \ref{sec:uksys} when I describe the implementation of the UK system.
+
+\begin{fortrancode}
+pure subroutine CalcNetInc(sys,fam,net)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)  :: sys
+    type(fam_t), intent(in)  :: fam
+    type(net_t), intent(out) :: net
+end subroutine
+\end{fortrancode}
+
+\noindent Since FORTAX may be used in applications where incomes are only required to be calculated for certain family types, it defines a number of macros which allow application specification optimizations to be performed. Currently, it defines the macros \texttt{\_famcouple\_}, \texttt{\_fammarried\_} and \texttt{\_famkids\_} which default to \texttt{fam\%couple}, \texttt{fam\%married} and \texttt{fam\%nkids>0} respectively. If FORTAX is only required to calculate net incomes for lone parents, say, then these can be replaced with \texttt{.false.}, \texttt{.false.} and \texttt{.true.} which will remove the need for these expressions to be evaluated at run-time. If the calculation routines are extended (or new ones introduced), then they should use these macro definitions rather than referring to the derived family type directly.
+
+\subsection{fortax\_kinks.f90}\label{sec:fortaxkinks}
+
+The module \texttt{fortax\_kinks} provides support programs that have been integrated into the main FORTAX library due to their general applicability and usefulness. These particular support programs produce piecewise linear schedules, varying either earnings (for fixed hours) or hours (for a fixed hourly wage) by repeatedly calling the main calculation routines and using a bisection method to identify the location of any marginal rate changes or discontinuities. This can be performed on any component with the tax system structure of type \texttt{sys\_t}. The module defines integer parameter \texttt{maxkinks} which is equal to the maximum number of ``kink'' points the program will consider (by default this is equal to 200, but it can be set at compile time by appropriately defining the macro \texttt{\_maxkids\_}), as well as a type structure \texttt{bcout\_t} which stores the relevant summary information for the piecewise linear schedule: the actual number of kink points \texttt{kinks\_num}, together with the hours \texttt{kinks\_hrs}, earnings \texttt{kinks\_earn}, tax component amount \texttt{kinks\_net}, and marginal rate of this tax component \texttt{kinks\_mtr}. Both \texttt{maxkinks} and \texttt{bcout\_t} are publicly visible.
+
+\begin{fortrancode}
+module fortax_kinks
+#   ifndef _maxkinks_
+    integer, parameter :: maxkinks = 200
+#   else
+    integer, parameter :: maxkinks = _maxkinks_
+#   endif /* _maxkinks_ */
+#   undef _maxkinks_
+    type :: bcout_t
+        integer :: kinks_num
+        real(dp), dimension(maxkinks) :: kinks_hrs, kinks_earn, kinks_net, kinks_mtr
+    end type bcout_t
+contains
+end module
+\end{fortrancode}
+
+\noindent\texttt{kinkshours} calculates a piecewise linear schedule under the tax system \texttt{sys} for a family \texttt{fam} of type \texttt{fam\_t} by varying hours of work from \texttt{hours1} to \texttt{hours2} with a fixed hourly wage \texttt{wage}. In the case of a couple, you may specify which adult this is to be applied to by setting \texttt{ad=1} or \texttt{ad=2}. The piecewise linear schedule of type \texttt{budcon\_t} is stored in \texttt{bcout}.  By default, it will output total family net income \texttt{net\%tu\%dispinc}. It can output different measures by specifying \texttt{taxlevel} (\texttt{tu},\texttt{ad1}, or \texttt{ad2} -- respectively corresponding to \texttt{net\_t\%tu}, \texttt{net\_t\%ad(1)}, and \texttt{net\_t\%ad(2)}) and \texttt{taxout} which determines the income measure in \texttt{net\_t}. Note that if either \texttt{taxout} or \texttt{taxlevel} is specified, then both must be specified. \texttt{taxout} is an array, which allows the user to combine income measures which are summed by default. The pre-fix operators \texttt{+} and \texttt{-} can be included in \texttt{taxout} to explictly control any addition or subtraction of income measures. For example, \texttt{taxout=(/'+a','-b'/)} will produce a piecewise linear constraint for the income measure \texttt{a-b}. Optional logical \texttt{correct} performs some rounding to the final schedule, while logical \texttt{verbose=.true.} prints the schedule to the default unit. Note that any positive (negative) discontinuities in the schedule will have marginal rates reported as \texttt{9.99999\_dp} (\texttt{-9.99999\_dp}).
+
+\begin{fortrancode}
+subroutine kinkshours(sys,fam,ad,wage,hours1,hours2,bcout, taxlevel,taxout,correct,verbose)
+    use fortax_type,  only : fam_t, sys_t, net_t
+    use fortax_util,  only : lower, inttostr, fortaxerror
+    use fortax_calc,  only : calcnetinc
+    type(sys_t),      intent(in)  :: sys
+    type(fam_t),      intent(in)  :: fam
+    integer,          intent(in)  :: ad
+    real(dp),         intent(in)  :: wage
+    real(dp),         intent(in)  :: hours1, hours2
+    type(bcout_t),    intent(out) :: bcout
+    character(len=*), intent(in), optional :: taxlevel
+    character(len=*), intent(in), optional :: taxout(:)
+    logical,          intent(in), optional :: correct
+    logical,          intent(in), optional :: verbose
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{kinksearn} calculates a piecewise linear schedule under the tax system \texttt{sys} for a family \texttt{fam} of type \texttt{fam\_t} by varying earnings from \texttt{earn1} to \texttt{earn2} with fixed hours of work \texttt{hours}. The calling syntax is otherwise identical to \texttt{kinkshours} as detailed above.
+\begin{fortrancode}
+subroutine kinksearn(sys,fam,ad,hours,earn1,earn2,bcout, taxlevel,taxout,correct,verbose)
+    use fortax_type,  only : fam_t, sys_t, net_t
+    use fortax_util,  only : lower, inttostr
+    use fortax_calc,  only : calcnetinc
+    type(sys_t),      intent(in)  :: sys
+    type(fam_t),      intent(in)  :: fam
+    integer,          intent(in)  :: ad
+    real(dp),         intent(in)  :: hours
+    real(dp),         intent(in)  :: earn1, earn2
+    type(bcout_t),    intent(out) :: bcout
+    character(len=*), intent(in), optional :: taxlevel
+    character(len=*), intent(in), optional :: taxout(:)
+    logical,          intent(in), optional :: correct
+    logical,          intent(in), optional :: verbose
+end subroutine
+\end{fortrancode}
+
+Note: A parameter \texttt{maxstep} is defined in both subroutines \texttt{kinksearn} and \texttt{kinkshours}. This controls the initial hours/earnings steps used to identify changes in marginal rates prior to bisection methods being used. Higher values will typically require fewer calls to the main calculation routine (although sufficiently values will likely require more calls), but may result in the respective routines failing to detect certain kink points. The default parameters values appear to work well with UK tax systems, but they can be reduced if the routine fails to identify all the kinks.\\
+
+\noindent\texttt{evalKinksHours} uses the piecewise linear budget constraint structure \texttt{bcout} as calculated in \texttt{kinkshours} to evaluate the respective income measure at hours \texttt{hours}. It returns the earnings \texttt{earn}, income measure \texttt{net} and marginal tax rate \texttt{mtr} that are associated with this hours level. If optional \texttt{iin} is not specified then it will use bisection to search through \texttt{bcout} to identify the relevant linear section. Otherwise, an incremental search will be performed from index \texttt{iin}. If optional \texttt{iout} is specified, the index of the relevant linear section for hours \texttt{hours} will be returned. If \texttt{hours} is out-of-range, linear extrapolation will be performed.
+
+\begin{fortrancode}
+pure subroutine evalKinksHours(bcout,hours,earn,net,mtr,iin,iout)
+    type(bcout_t),  intent(in)  :: bcout
+    real(dp),       intent(in)  :: hours
+    real(dp),       intent(out) :: earn,net,mtr
+    integer,        intent(in),  optional :: iin
+    integer,        intent(out), optional :: iout
+end subroutine    
+\end{fortrancode}
+
+\noindent\texttt{evalKinksEarn} uses the piecewise linear budget constraint structure \texttt{bcout} as calculated in \texttt{kinksEarn} to evaluate the respective income measure at earnings \texttt{earn}. The calling syntax is as in \texttt{evalKinksHours}.
+
+\begin{fortrancode}
+pure subroutine evalKinksEarn(bcout,earn,hours,net,mtr,iin,iout)
+    type(bcout_t),  intent(in)  :: bcout
+    real(dp),       intent(in)  :: earn
+    real(dp),       intent(out) :: hours,net,mtr
+    integer,        intent(in),  optional :: iin
+    integer,        intent(out), optional :: iout
+end subroutine    
+\end{fortrancode}
+
+\subsection{fortax\_extra.f90}\label{sec:fortaxextra}
+
+\texttt{setminamount} will set any element of the tax system \texttt{sys} whose \emph{vartype} is specified as \emph{minamt} (in the relevant include file -- see section \ref{sec:includes}) to equal \texttt{minamt}. It makes use of the Fortran pre-processor.
+
+\begin{fortrancode}
+subroutine setminamount(sys,minamt)
+    use fortax_type, only : sys_t
+    type(sys_t), intent(inout) :: sys
+    real(dp),    intent(in)    :: minamt
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{abolishnifee} will modify the tax system \texttt{sys} so that any national insurance entry fee (whereby national insurance is paid on \emph{total} earnings once a threshold is reached) is abolished. This therefore removes a discontinuity in the budget constraint.
+    
+\begin{fortrancode}    
+subroutine abolishnifee(sys)
+    use fortax_type, only : sys_t
+    use fortax_util, only : fortaxwarn
+    type(sys_t), intent(inout) :: sys
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{fsminappamt} will modify the tax system \texttt{sys} so that the value of free school meals is included in the \emph{applicable amount} for income support calculations when \texttt{taper=.true.}. This therefore removes a discontinuity in the budget constraint, as entitlement to free school meals is lost when income support is completely tapered away. Default behaviour is obtained when when \texttt{taper=.false.}. An alternative to calling this subroutine is to simply set \texttt{sys\%extra\%fsminappamt} to be either \texttt{.true.} or \texttt{.false.}.
+
+\begin{fortrancode}
+subroutine fsminappamt(sys,inappamt)
+    use fortax_type, only : sys_t
+    type(sys_t), intent(inout) :: sys
+    logical,     intent(in)    :: inappamt
+end subroutine        
+\end{fortrancode}
+
+\noindent\texttt{tapermatgrant} will modify the tax system \texttt{sys} so that the value of maternity grant is included in the \emph{applicable amount} for income support calculations when \texttt{taper=.true.}. This therefore removes a discontinuity in the budget constraint, as entitlement to maternity grant is lost when income support is completely tapered away. Furthermore, the value of maternity grant is also tapered away with tax credit entitlement when \texttt{taper=.true.}. Default behaviour is obtained when when \texttt{taper=.false.}. An alternative to calling this subroutine is to set \texttt{sys\%extra\%matgrant} to be either \texttt{.true.} or \texttt{.false.}.
+
+\begin{fortrancode}
+subroutine tapermatgrant(sys,taper)
+    use fortax_type, only : sys_t
+    type(sys_t), intent(inout) :: sys
+    logical,     intent(in)    :: taper
+end subroutine
+\end{fortrancode}
+            
+\subsection{fortax\_util.f90}\label{sec:fortaxutil}
+
+A number of support utilities are available in \texttt{fortax\_util}, as well as generic error handling routines. Function \texttt{inttostr} returns the integer \texttt{N} as a variable length string. It uses \texttt{intToStrLen} to calculate the required length.
+\begin{fortrancode}
+pure function intToStr(N)
+    integer, intent(in)       :: N
+    character(intToStrLen(N)) :: intToStr
+end function
+\end{fortrancode}
+
+\noindent\texttt{intToStrLen} returns the length of string representing the integer \texttt{N}. It is called by \texttt{intToStr}.
+\begin{fortrancode}
+pure function intToStrLen(N)
+    integer, intent(in) :: N
+    integer             :: intToStrLen
+end function
+\end{fortrancode}
+
+\noindent\texttt{strToDouble} returns input \texttt{string} as a double precision number. It does not perform any user input checks to verify whether \texttt{string} contains a valid numeric type.
+\begin{fortrancode}
+pure function strToDouble(string)
+    character(len=*), intent(in) :: string
+    real(dp)                     :: strToDouble
+end function
+\end{fortrancode}
+
+\noindent\texttt{strToInt} returns input \texttt{string} as an integer number. It does not perform any user input checks to verify whether \texttt{string} contains a valid numeric type.
+\begin{fortrancode}
+pure function strToInt(string)
+    character(len=*), intent(in) :: string
+    integer                      :: strToInt
+end function
+\end{fortrancode}
+
+\noindent\texttt{strToLogical} returns input \texttt{string} as a logical data type. It interprets the string \texttt{"0"} to be \texttt{.false.}, and anything else to be \texttt{.true.}.
+\begin{fortrancode}
+pure function strToLogical(string)
+    character(*), intent(in) :: string
+    logical                  :: strToLogical
+end function
+\end{fortrancode}
+
+\noindent\texttt{lower} returns a string of the same length as \texttt{str} with all characters converted to lower case. This can be useful for case insensitive string comparisons.
+\begin{fortrancode}
+pure function lower(str)
+    character(len=*), intent(in) :: str
+    character(len(str))          :: lower
+end function
+\end{fortrancode}
+
+\noindent\texttt{upper} returns a string of the same length as \texttt{str} with all characters converted to upper case. This can be useful for case insensitive string comparisons.
+\begin{fortrancode}
+pure function upper(str)
+    character(len=*), intent(in) :: str
+    character(len(str))          :: upper
+end function
+\end{fortrancode}
+
+\noindent\texttt{compact} modifies the original string \texttt{str}, converting multiple spaces and tabs to single spaces, deleting control characters and removing any initial spaces.
+\begin{fortrancode}
+pure subroutine compact(str)
+    character(len=*), intent(inout) :: str
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{trimZero} modifies the original string \texttt{str} by trimming any leading zeros. It does not perform any user input checks to verify whether \texttt{string} contains a valid numeric type.
+\begin{fortrancode}
+pure subroutine trimZero(str)
+    character(len=*), intent(inout) :: str
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{getunit} returns a free file unit number \texttt{funit} that can be used for file input and output. It searches for free units from one above the standard output unit number to 99.
+\begin{fortrancode}
+subroutine getunit(funit)
+    use, intrinsic :: iso_fortran_env
+    integer, intent(out) :: funit
+end subroutine
+\end{fortrancode}
+
+\noindent\texttt{fortaxError} displays the error message \texttt{errmsg} and halts execution of the program. If \texttt{funit} is specified it will output this error message to file unit \texttt{funit}. Otherwise, it will be displayed in the default unit.
+\begin{fortrancode}
+subroutine fortaxError(errmsg,funit)
+    character(len=*),  intent(in) :: errmsg
+    integer, optional, intent(in) :: funit
+end subroutine
+\end{fortrancode}
+        
+\noindent\texttt{fortaxWarn} displays the warning message \texttt{errmsg} and then continues execution of the program. If \texttt{funit} is specified it will output this warning message to file unit \texttt{funit}. Otherwise, it will be displayed in the default unit.
+\begin{fortrancode}
+subroutine fortaxWarn(errmsg,funit)
+    character(len=*),  intent(in) :: warnmsg
+    integer, optional, intent(in) :: funit
+end subroutine    
+\end{fortrancode}
+        
+\section{Include files and the Fortran pre-processor}\label{sec:includes}
+
+FORTAX makes extensive use of included source files, saved in the relative path \texttt{`includes'} which are then processed using the Fortran pre-processor (FPP). These allow the user to easily modify parts of FORTAX, by extending and changing the main derived types, \texttt{sys\_t}, \texttt{net\_t} and \texttt{fam\_t}. These are not written in Fortran. The role of the pre-processor is to interpret these files into Fortran source code, and to do this differently depending on the context in which these files are encountered.
+
+All the main parts of the tax and transfer system (income tax, national insurance, child benefit, income support, etc.) are defined within the include file \texttt{`includes/system/syslist.inc'}. Whenever FORTAX is performing an operation on the entire tax system it will make use of this include file. If a new part is added to the tax system, then it should be reflected in this list. It is structured as follows:
+
+\begin{includecode}[title={Code extract from \texttt{includes/system/syslist.inc}},frame=lines]
+#undef   _$typelist
+#define  _$typelist inctax
+#include 'includes/system/inctax.inc'
+#undef   _$typelist
+#define  _$typelist natins
+#include 'includes/system/natins.inc'
+...
+\end{includecode}
+
+The include files which then define the various parts of the tax system (for example, \texttt{`includes/system/inctax.inc'}) begin with \texttt{\_\$header} and end with \texttt{\_\$footer}. These allow specific operations to be performed when first entering, and then exiting, a given include file. Parts of the tax system are then defined in the form \emph{storagetype(varname,vartype)} when \emph{storagetype} is either \texttt{\_\$integer}, \texttt{\_\$double} or \texttt{\_\$logical} (corresponding to the Fortran types \texttt{integer}, \texttt{real(dp)} and \texttt{logical}). When they are defined in the form \emph{storagetype(varname,vartype,vardim)}, then \emph{storagetype} is either \texttt{\_\$integerarray}, \texttt{\_\$doublearray} or \texttt{\_\$logicalarray}. In both cases \emph{varname} will refer to the internal variable name, whereas \emph{vartype} tells FORTAX something about what this variable represents in the tax system; for example, it could be specified as a \emph
+ {rate} or \emph{amount}. These specifications allow various operations, such as price uprating which I discuss below, to be performed very efficiently and do not require large data structures to be held in memory. When \emph{vardim} is present it refers to the one dimensional array size, either a valid storage size, or `\texttt{:}' for an allocatable array. The main contents of the file \texttt{`includes/system/inctax.inc'} is shown below.
+
+\begin{includecode}[title={Code extract from \texttt{includes/system/inctax.inc}},frame=lines]
+...
+_$header
+_$integer(numbands,range)
+_$double(pa,amount)
+_$double(mma,amount)
+_$double(ctc,amount)
+_$double(ctcyng,amount)
+_$double(mmarate,rate)
+_$double(ctctaper,rate)
+_$double(c4rebate,rate)
+_$doublearray(bands,amount,:)
+_$doublearray(rates,rate,:)
+_$footer
+...
+\end{includecode}
+
+A simple example of the use of preprocessing in FORTAX is illustrated by the subroutine \texttt{upratesys} from the module \texttt{fortax\_prices}. Here, an uprating factor \texttt{factor} is passed to the subroutine, and the subroutine defines parameters (which correspond to \emph{vartype} as discussed above) to either \texttt{.true.} or \texttt{.false.} depending on whether FORTAX should attempt to uprate these tax parameters by scaling by \texttt{factor}. In this case, uprating is only performed if \emph{vartype} is equal to \texttt{amount} or \texttt{minamount}.
+
+\begin{fortrancode}[title={Code extract from subroutine \texttt{upratesys}},frame=lines]
+subroutine upratesys(sys,factor,newdate)
+    use fortax_type, only : sys_t
+    use fortax_util, only : fortaxwarn    
+    type(sys_t), intent(inout)        :: sys
+    real(dp),    intent(in)           :: factor
+    integer,     intent(in), optional :: newdate
+
+    logical, parameter :: null      = .false.
+    logical, parameter :: range     = .false.
+    logical, parameter :: scale     = .false.
+    logical, parameter :: rate      = .false.
+    logical, parameter :: amount    = .true.
+    logical, parameter :: minamount = .true.
+
+    if (present(newdate)) sys%desc%prices = newdate
+
+#   include 'includes/fortax_uprate.inc'
+
+end subroutine
+\end{fortrancode}
+
+The actual uprating is then performed by including and processing the file \texttt{`includes/fortax\_uprate.inc'}. The main body of this code is presented below.
+
+\begin{includecode}[title={Code extract from \texttt{includes/fortax\_uprate.inc}},frame=lines]
+...
+#define _$logical(x,y) if (y) call fortaxwarn('can''t uprate logical '//#x)
+#define _$integer(x,y) if (y) sys%_$typelist%x = factor*sys%_$typelist%x
+#define _$double(x,y)  if (y) sys%_$typelist%x = factor*sys%_$typelist%x
+#define _$logicalarray(x,y,z) if (y) call fortaxwarn('can''t uprate logicalarray '//#x)
+#define _$integerarray(x,y,z) if (y) sys%_$typelist%x = factor*sys%_$typelist%x
+#define _$doublearray(x,y,z)  if (y) sys%_$typelist%x = factor*sys%_$typelist%x
+#define _$header
+#define _$footer
+#include 'includes/system/syslist.inc'
+...
+\end{includecode}
+
+As \texttt{fortax\_uprate.inc} includes \texttt{`includes/system/syslist.inc'}, it is able to operate on all the individual elements of the tax system defined in type \texttt{sys\_t}. To understand what this code does, note that before the file \texttt{inctax.inc} which appears in \texttt{syslist.inc} is included, \texttt{\_\$typelist} is defined as \texttt{inctax}. Therefore, the line \texttt{\_\$integer(numbands,range)} from \texttt{inctax.inc} will be replaced with the line of Fortran code \texttt{if (.false.) sys\%inctax\%numbands=factor*sys\%inctax\%numbands}, and will therefore do nothing. Moreover, because \texttt{.false.} is a known parameter at compile time, an efficient compiler would remove this statement if suitable optimizations are enabled, so that no evaluation would be performed here. Similarly, the line \texttt{\_\$integer(pa,amount)} would be replaced with \texttt{if (.true.) sys\%inctax\%pa=factor*sys\%inctax\%pa} in which case an operation would be performed. Once again, compiler optimizations may remove the initial logical evaluation as this is known at compile time.
+
+\section{Compiling FORTAX}\label{sec:compile}
+
+A makefile is provided to perform compilation. The provided makefile assumes the use of the Intel Fortran Compiler, although other compilers can be used by modifying the relevant macro definitions. The file dependencies of FORTAX are shown in table \ref{table:depends} and are reflected in the provided makefile. Microsoft Windows users using Microsoft Visual Studio with Intel Visual Fortran integration may easily include these files in a project. It is generally preferable to compile FORTAX as a library, and then link the library to your particular application.
+
+\begin{table}
+\footnotesize
+\caption{FORTAX file dependencies}\label{table:depends}
+ \begin{tabularx}{\textwidth}{lX}
+  \toprule
+File & Depends\\
+\midrule
+xmlparse\\
+read\_xml\_prims & xmlparse, \emph{$<$includes/xml$>$}\\
+write\_xml\_prims & xmlparse\\
+xml\_taxben\_t & xmlparse, read\_xml\_prims\\
+xml\_fortax\_t & xmlparse, read\_xml\_prims, write\_xml\_prims\\
+fortax\_realtype\\
+fortax\_util & fortax\_realtype\\
+fortax\_type & fortax\_realtype, includes/sys\_t.inc, includes/sys\_init.inc, includes/fam\_t.inc, includes/famad\_t.inc, includes/nettu\_t.inc, includes/netad\_t.inc, \emph{$<$includes/systems$>$}\\
+fortax\_calc & fortax\_realtype, fortax\_type\\
+fortax\_extra & fortax\_realtype, fortax\_util, fortax\_type, includes/fortax\_minamt.inc, \emph{$<$includes/system$>$}\\
+fortax\_prices & fortax\_realtype, fortax\_util, fortax\_type, includes/fortax\_uprate.inc, \emph{$<$includes/system$>$}\\
+ fortax\_read & xmltaxben\_t, xmlfortax\_t, fortax\_realtype, fortax\_util, fortax\_type, fortax\_calc, includes/fortax\_typeread.inc includes/fortax\_read.inc, \emph{$<$includes/system$>$}\\
+ fortax\_write & xmlparse, fortax\_realtype, fortax\_util, fortax\_type, includes/fortax\_write.inc, includes/fortax\_print.inc, \emph{$<$includes/system$>$}\\
+ fortax\_kinks & fortax\_realtype, fortax\_util, fortax\_type, fortax\_calc, includes/nettu\_t.inc, includes/netad\_t.inc\\
+\bottomrule
+\end{tabularx}
+
+\footnotesize{Notes: \emph{$<$includes/xml$>$} and \emph{$<$includes/system$>$} refer to the files contained within the respective file directories. File extension is \texttt{.f90} unless stated otherwise.}
+\end{table}
+
+\section{FORTAX file format}\label{sec:fortaxformat}
+
+FORTAX saves system files as XML documents. Note that if the tax system is extended in any way, then this will automatically be recognized by FORTAX such that no changes in the read/write routines will be required. An example portion of the system file is shown below. Here \emph{basename} corresponds to the main parts of the tax system as contained in the file \texttt{`include/system/syslist.inc'}, while the individual \emph{name} parameters correspond to the description contained in the respective include files (for example, \texttt{`includes/system/inctax.inc'}). The \emph{storagetypes} \texttt{\_\$integer}, \texttt{\_\$double}, \texttt{\_\$logical}, \texttt{\_\$integerarray}, \texttt{\_\$doublearray}, and \texttt{\_\$logicalarray}, are respectively referred to as \texttt{finteger}, \texttt{fdouble}, \texttt{flogical}, \texttt{fintegerarray}, \texttt{fdoublearray}, and \texttt{flogicalarray} in the system file.
+
+\begin{xmlcode}[title={Extract from example FORTAX system file}]
+<?xml version="1.0"?>
+<fortax>
+<system basename="inctax">
+   <finteger name="numbands" value="3"/>
+   <fdouble name="pa" value="88.7500000000000"/>
+   <fdouble name="mma" value="0.000000000000000E+000"/>
+   <fdouble name="ctc" value="10.1730769230769"/>
+   <fdouble name="ctcyng" value="10.1730769230769"/>
+   <fdouble name="mmarate" value="0.100000000000000"/>
+   <fdouble name="ctctaper" value="6.666666666666667E-002"/>
+   <fdouble name="c4rebate" value="0.000000000000000E+000"/>
+   <fdoublearray name="bands" value="36.9230769230769 575.000000000000 19230.7692307692"></fdoublearray>
+   <fdoublearray name="rates" value="0.100000000000000 0.220000000000000 0.400000000000000"></fdoublearray>
+</system>
+<system basename="natins">
+   <finteger name="numrates" value="2"/>
+    ...
+</system>
+....
+</fortax>
+\end{xmlcode}
+
+\section{Implementation of the UK tax system}\label{sec:uksys}
+
+FORTAX currently models UK tax systems from April 1990 to April 2009. This section describes the implementation of the systems, and in doing so briefly describes some of the main features. It does not attempt to provide a detailed guide to how individual parts of the tax and transfer system are calculated and how they interact. Recent surveys of the the UK tax and transfer system are provided in \cite{adam+browne2009} and \cite{o'dea+phillips+vink2007}. Before I proceed I note that the current implementation is incomplete. In particular it does not currently model any disability related benefits, or incomes for the non-working-age population. It also ignores non-dependants and anything to do with capital and capital income. Whether or not these are a limitation will depend upon the specific application of FORTAX.
+
+I now describe the implementation. These are discussed in the order in which they are modelled by FORTAX and so reflect the dependencies between parts of the UK tax and transfer system. These routines are all called directly or indirectly from \texttt{calcNetInc} within the \texttt{fortax\_calc} module. Typically these routines and functions require that the tax system \texttt{sys} of type \texttt{sys\_t} and family structure \texttt{fam} of type \texttt{fam\_t} are passed to them and are not allowed to be modified in any way (intent is specified as \texttt{in}). The net income structure \texttt{net} of type \texttt{net\_t} is also passed and is modified as calculations are performed (intent is set to \texttt{inout}). Note that the subroutines and functions may refer to previously calculated elements of \texttt{net\_t}.
+
+\subsection{National Insurance}
+
+National insurance contributions (NICs) are taxes paid by employees and employers on earnings. Individuals who have made sufficient contributions are entitled to certain (``contributory'') transfer payments. It is necessary to calculate national insurance before income tax because the rebate for Class 4 contributions between April 1985 and April 1995 reduces taxable income. The subroutine \texttt{natIns} calculates the NICs of adult \texttt{i} in family \texttt{fam}. National insurance is defined in \texttt{sys\%natins} and stores class 1, 2 and 4 contributions in \texttt{net\%ad(i)\%natinsc1}, \texttt{net\%ad(i)\%natinsc2} and \texttt{net\%ad(i)\%natinsc4}. The sum of these NICs components is then stored in \texttt{net\%ad(i)\%natins}. Note that \texttt{sys\%natins\%rates(1)} acts as the ``entry fee'' (up to April 1999) if earnings exceed \texttt{sys\%natins\%bands(1)}.
+
+\begin{fortrancode}
+pure subroutine natIns(sys,fam,net,i)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+    integer,     intent(in)    :: i
+end subroutine
+\end{fortrancode}
+
+\subsection{Income tax}
+
+Income tax operates through a system of allowances and bands of income. Each individual has a personal allowance, which is deducted from total income before tax to give taxable income. Age related personal allowances are ignored in our implementation because I currently only consider working-age individuals. Before the amount of income tax payable is calculated, subroutine \texttt{tearn} calculates taxable earnings for the tax unit. It subtracts the income tax personal allowance from individual earnings, and where relevant also deducts a rebate for class 4 NICs and pre-April 1994 deducts married couples allowance and additional person allowance (more below). The relevant system parameters are defined in \texttt{sys\%inctax}. Individual level taxable earnings are stored in \texttt{net\%ad(:)\%taxable}.
+
+\begin{fortrancode}
+pure subroutine tearn(sys,fam,net)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+end subroutine
+\end{fortrancode}
+
+\noindent Income tax for adult \texttt{i} is then calculated in \texttt{incTax}. The relevant system parameters are defined in \texttt{sys\%inctax}. Individual level taxable earnings are stored in \texttt{net\%ad(i)\%inctax}.
+
+\begin{fortrancode}
+pure subroutine incTax(sys,net,i)
+    use fortax_type, only : sys_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(net_t), intent(inout) :: net
+    integer,     intent(in)    :: i
+end subroutine
+\end{fortrancode}
+
+\noindent Children's tax credit was only available in two years, 2001/02 and 2002/03, and reduced the tax liability of those with children by a flat-rate amount (tapered away for higher-rate taxpayers). The amount of tax after children's tax credit is calculated by the subroutine \texttt{taxAfterCTC}. The system parameters are defined within \texttt{sys\%inctax} and it modifies the values of \texttt{net\%ad(:)\%inctax}.
+
+\begin{fortrancode}
+pure subroutine taxAfterCTC(sys,fam,net)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+end subroutine
+\end{fortrancode}
+
+\noindent Until April 1994 married couple's allowance (MCA) was available to married couples. Up until April 1993, MCA was set against the income of the husband (with any unused allowance transferable to the wife). From April 1993, half or all of the MCA could be transferred to the wife (any unused allowance could still be transferred to the other member of the couple). Since April 1990, the additional personal allowance (APA) -- an allowance available to lone parents and unmarried couples with children -- has been equal to the MCA. Between April 1994 and April 2000, both MCA and APA reduced tax payable rather than acting as an allowance, while in April 2000 both were abolished for people born after 1935. While the pre-April 1994 allowances are calculated in \texttt{tearn}, in later years these are calculated in the subroutine \texttt{taxAfterMCA}. In both cases the relevant parameters are defined in \texttt{sys\%inctax} and subroutine \texttt{taxAfterMCA} modifies the value of \texttt{net\%ad(:)\%inctax}.
+
+\begin{fortrancode}
+pure subroutine taxAfterMCA(sys,fam,net)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+end subroutine
+\end{fortrancode}
+
+\noindent After calling these subroutines, it sets the values of \texttt{net\%ad(:)\%posttaxearn} and \texttt{net\%tu\%posttaxearn} which are referenced by subsequent routines.
+
+\subsection{Child benefit}
+Child Benefit (defined in \texttt{sys\%chben}) is a universal benefit available for families with children. A child is someone aged under 16, or aged 16-18 and in full-time education. The lone parent rate of child benefit (which replaced the former one parent benefit in April 1997) was abolished from 6 July 1998 except for existing claimants. FORTAX ignores the fact that the lone parent rate can still be claimed by existing claimants. It sets \texttt{net\%tu\%chben}.
+
+\begin{fortrancode}
+pure subroutine chben(sys,fam,net)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+end subroutine
+\end{fortrancode}
+
+\subsection{Family Credit and Working Families' Tax Credit}
+Family Credit (up to October 1999) and Working Families' Tax Credit (from October 1999 up to April 2003) are means tested in-work benefits/tax-credits payable to families with children. They both have minimum hours conditions, with a further payment for full-time work. They are calculated by the subroutine \texttt{famCred}, which calls \texttt{maxFCamt} to determine the maximum pre-taper entitlement level (which depends upon the number and age of children, together with childcare expenditure). The subroutine \texttt{FCdisreg} calculates the earnings disregard for childcare expenditure. The system parameters are defined in \texttt{sys\%fc} and it sets the values of both \texttt{net\%tu\%fc} and \texttt{net\%tu\%chcaresub}.
+
+\begin{fortrancode}
+pure subroutine famCred(sys,fam,net)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+end subroutine
+\end{fortrancode}
+
+\begin{fortrancode}
+pure subroutine maxFCamt(sys,fam,net,MaxFC)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+    real(dp), intent(out)      :: MaxFC
+end subroutine
+\end{fortrancode}
+
+\begin{fortrancode}
+real(dp) pure function FCDisreg(sys,fam)
+    use fortax_type, only : sys_t, fam_t
+    type(sys_t), intent(in) :: sys
+    type(fam_t), intent(in) :: fam
+end function
+\end{fortrancode}
+
+
+\subsection{New tax credits}
+
+The new tax credits (working tax credit and child tax credit) were introduced in April 2003. Working Tax Credit provides in-work support for low-income working families both with children (when at least one adult works at least 16 hours per week) and without children (at least one adult aged 25 or above working at least 30 hours per week). It also includes a childcare credit. Child tax credit is payable to families with children, and comprises a family element with additional elements for each child. A joint CTC/WTC means tested is applied and depends on family level income. For both these tax credits FORTAX ignores any disability related payments, and also the working tax credit supplement for the over 50s who are returning to work. Entitlement for the new tax credits is calculated by the subroutine \texttt{NTC}. This first calls \texttt{maxWTCamt}, \texttt{maxCTCfam} and \texttt{maxCTCkid} to determine the respective maximum pre-taper entitlement for working tax credit, and both the family and child elements of the child tax credit. The subroutine \texttt{NTCtaper} then applies the taper, assuming receipt for the entire year. The entire new tax credits system is defined in \texttt{sys\%ntc}, \texttt{sys\%wtc}, and \texttt{sys\%ctc}. It sets the values of \texttt{net\%tu\%wtc}, \texttt{net\%tu\%ctc}, and \texttt{net\%tu\%chcaresub}.
+
+\begin{fortrancode}
+pure subroutine NTC(sys,fam,net)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+end subroutine
+\end{fortrancode}
+
+%The relevant system parameters are in \texttt{sys\%ctc}.
+\begin{fortrancode}
+real(dp) pure function maxCTCfam(sys,fam)
+    use fortax_type, only : sys_t, fam_t
+    type(sys_t), intent(in) :: sys
+    type(fam_t), intent(in) :: fam
+end function
+\end{fortrancode}
+
+%The relevant system parameters are in \texttt{sys\%ctc}.
+\begin{fortrancode}
+real(dp) pure function maxCTCkid(sys,fam)
+    use fortax_type, only : sys_t, fam_t
+    type(sys_t), intent(in) :: sys
+    type(fam_t), intent(in) :: fam
+end function
+\end{fortrancode}
+
+%The relevant system parameters are in \texttt{sys\%wtc}. It stores \texttt{net\%tu\%chcaresub}.
+\begin{fortrancode}
+pure subroutine maxWTCamt(sys,fam,net,maxWTC)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+    real(dp),    intent(out)   :: maxWTC
+end subroutine
+\end{fortrancode}
+
+%The relevant system parameters are in \texttt{sys\%wtc}. It stores \texttt{net\%tu\%ctc} and \texttt{net\%tu\%wtc}.
+
+\begin{fortrancode}
+pure subroutine NTCtaper(sys,fam,net,maxWTC, maxCTCFam,maxCTCKid)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+    real(dp),    intent(in)    :: maxWTC,maxCTCFam,maxCTCKid
+end subroutine
+\end{fortrancode}
+
+\subsection{Income support and income-based JSA}
+Income support is a means-tested benefit paid to people on low incomes and is not available to those in full-time work. Families are eligible if a measure of net family income (less any disregards) is less than their ``applicable amount''. The applicable amount is equal to the sum of a personal allowance, together with lone parent and family premiums and child additions. Income support entitlement is then equal to the amount of income required such that the sum of net family income and income support is equal to the applicable amount. Note that up until October 1996, unemployed workers who satisfied the relevant contributory conditions received unemployment benefit, while those who did not could claim income support. In October 1996, unemployment benefit was renamed contributory job seekers allowance (JSA), and, for those who did not work, income support was renamed income-based JSA. Income support entitlement is calculated in subroutine \texttt{incSup}, which calls the functions \texttt{ISappamt} and \texttt{ISdisreg} to calculate the relevant applicable amount and income disregard. The income support parameters in the following subroutines and functions are defined in \texttt{sys\%incsup} and it sets the values of \texttt{net\%tu\%incsup}.
+
+\begin{fortrancode}
+pure subroutine incSup(sys,fam,net)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+end subroutine
+\end{fortrancode}
+
+\begin{fortrancode}
+real(dp) pure function ISappAmt(sys,fam)
+    use fortax_type, only : sys_t, fam_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+end function
+\end{fortrancode}
+
+\begin{fortrancode}
+real(dp) pure function ISdisreg(sys,fam)
+    use fortax_type, only : sys_t, fam_t
+    type(sys_t), intent(in) :: sys
+    type(fam_t), intent(in) :: fam
+end function
+\end{fortrancode}
+
+\subsection{Maternity grant}
+Sure start maternity grant (formerly known as the maternity expenses payment), is a one-off payment for families with a new baby. Families can receive it if they receive Income Support, income-based Jobseeker's Allowance, FC/WFTC (up to April 2003), or more than the family element of Child Tax Credit (from April 2003). Receipt due to receipt of disability related benefits or Pension Credit is not modelled by FORTAX.
+
+\begin{fortrancode}
+pure subroutine matGrant(sys,fam,net,calcmax)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)           :: sys
+    type(fam_t), intent(in)           :: fam
+    type(net_t), intent(inout)        :: net
+    logical,     intent(in), optional :: calcmax
+end subroutine
+\end{fortrancode}
+
+\subsection{Local taxation}
+
+Council tax was introduced in April 1993 and is the current form of local taxation in England, Scotland and Wales (varying with local authority area) and is based on the value of the property occupied according to some council tax ``band'', with certain discounts and exemptions applied. It does not apply to Northern Ireland where domestic rates still exist. Council tax liabilities are calculated in the subroutine \texttt{ctax}, with the relevant parameters defined in \texttt{sys\%ctax}. It sets the value of \texttt{net\%tu\%ctax}.
+
+\begin{fortrancode}
+pure subroutine ctax(sys,fam,net)
+    use fortax_type, only : sys_t, fam_t, net_t, &
+    ctax_banda, ctax_bandb, ctax_bandc, ctax_bandd, &
+    ctax_bande, ctax_bandf, ctax_bandg, ctax_bandh
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+end subroutine ctax
+\end{fortrancode}
+
+Between April 1990 and April 1993, the community charge (poll tax) operated in England, Scotland and Wales, and was a flat rate that also depended on the local authority area. Community charge liabilities are calculated by the subroutines \texttt{polltax}, with the relevant parameters defined in \texttt{sys\%ccben}. It sets the value of \texttt{net\%tu\%polltax}.
+
+\begin{fortrancode}
+pure subroutine polltax(sys,fam,net)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+end subroutine polltax
+\end{fortrancode}
+
+\subsection[Housing, council tax, and community charge benefits]{Housing benefit, council tax benefit, and community charge benefit}
+
+Since housing benefit, council tax benefit, and community charge benefit are all calculated in much the same way, FORTAX reduces the number of calculations that need to be performed by first calling the subroutine \texttt{prelimCalc}. It returns the applicable amount \texttt{appamt} by calling the function \texttt{HBappAmt}, the standard earnings disregard \texttt{disreg1} by calling the function \texttt{stdDisreg}, the sum of the full-time and childcare disregard \texttt{disreg2} by calling the functions \texttt{FTdisreg} and \texttt{chcareDisreg}, and the maintenance disregard by calling \texttt{maintDisreg}. These are discussed further below.
+
+\begin{fortrancode}
+pure subroutine prelimCalc(sys,fam,net,appamt,disreg1, disreg2,disreg3)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+    real(dp),    intent(out)   :: appamt,disreg1,disreg2, disreg3
+end subroutine
+\end{fortrancode}
+
+\begin{fortrancode}
+real(dp) pure function HBappAmt(sys,fam)
+    use fortax_type, only : sys_t, fam_t
+    type(sys_t), intent(in) :: sys
+    type(fam_t), intent(in) :: fam
+end function
+\end{fortrancode}
+
+\begin{fortrancode}
+real(dp) pure function stdDisreg(sys,fam)
+    use fortax_type, only : sys_t, fam_t
+    type(sys_t), intent(in) :: sys
+    type(fam_t), intent(in) :: fam
+end function
+\end{fortrancode}
+
+\begin{fortrancode}
+real(dp) pure function FTdisreg(sys,fam)
+    use fortax_type, only : sys_t, fam_t
+    type(sys_t), intent(in) :: sys
+    type(fam_t), intent(in) :: fam
+end function
+\end{fortrancode}
+
+\begin{fortrancode}
+real(dp) pure function chcareDisreg(sys,fam,net)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in) :: sys
+    type(fam_t), intent(in) :: fam
+    type(net_t), intent(in) :: net
+end function
+\end{fortrancode}
+
+\begin{fortrancode}
+real(dp) pure function maintDisreg(sys,fam)
+    use fortax_type, only : sys_t, fam_t
+    type(sys_t), intent(in) :: sys
+    type(fam_t), intent(in) :: fam
+end function
+\end{fortrancode}
+
+Housing benefit is a means tested benefit payable to families with low incomes who rent their homes (for home owners, income support may provide support for mortgage interest payments).  Families who receive income support, income-based jobseeker's allowance or the guarantee credit element of the pension credit (currently not modelled by FORTAX) are automatically entitled to the maximum level of housing benefit. This maximum level is equal to ``eligible rent'' minus possible deductions.  If \texttt{sys\%rebatesys\%docap} is \texttt{.false.} then the level of eligible rent is interpreted to be their actual rent. Otherwise, a rent cap is imposed for private renters (as identified by \texttt{fam\%tenure}), so that eligible rent is equal to the minimum of \texttt{fam\%rent} and \texttt{fam\%rentcap}. Families are eligible to receive housing benefit if a measure of net family income (less any disregards as calculated by the subroutine \texttt{prelimCalc}) is less than their ``applicable amount''. As with income support, the applicable amount is equal to the sum of a personal allowance, together with lone parent and family premiums and child additions. Housing benefit entitlement is calculated by the subroutine \texttt{HBen} and is equal to the amount of income required such that the sum of net family income and housing benefit is equal to the applicable amount. The parameters of housing benefit are defined in \texttt{sys\%rebatesys} and it sets the value of housing benefit in \texttt{net\%tu\%hben}.
+
+\begin{fortrancode}
+pure subroutine HBen(sys,fam,net,appamt,disreg1, disreg2,disreg3)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+    real(dp),    intent(in)    :: appamt,disreg1,disreg2, disreg3
+end subroutine
+\end{fortrancode}
+
+\noindent The function \texttt{HBfull} returns value \texttt{.true.} if the family is entitled to the full amount of their eligible rent, and \texttt{.false.} otherwise.
+
+\begin{fortrancode}
+logical pure function HBfull(sys,fam,net,appamt,disreg1, disreg2,disreg3)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in) :: sys
+    type(fam_t), intent(in) :: fam
+    type(net_t), intent(in) :: net
+    real(dp),    intent(in) :: appamt,disreg1,disreg2,disreg3
+end function
+\end{fortrancode}
+
+\noindent Council tax benefit is payable to families with low incomes who are liable to pay council tax on a property in which they are resident. Many of the conditions for claiming are the same as those for housing benefit and the benefit is calculated by the subroutine \texttt{ctaxBen}. The relevant parameters are defined in \texttt{sys\%rebatesys} and \texttt{sys\%ctax} and it sets the value of \texttt{net\%tu\%ctaxben}.
+
+\begin{fortrancode}
+pure subroutine ctaxBen(sys,fam,net,appamt,disreg1, disreg2,disreg3)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+    real(dp),    intent(in)    :: appamt,disreg1,disreg2,disreg3
+end subroutine
+\end{fortrancode}
+
+\noindent The community charge benefit is calculated by subroutine \texttt{polltaxBen}. The relevant parameters are defined in \texttt{sys\%ccben} and it sets the value of \texttt{net\%tu\%polltaxben}.
+
+\begin{fortrancode}
+pure subroutine polltaxBen(sys,fam,net,appamt,disreg1, disreg2,disreg3)
+    use fortax_type, only : sys_t, fam_t, net_t
+    type(sys_t), intent(in)    :: sys
+    type(fam_t), intent(in)    :: fam
+    type(net_t), intent(inout) :: net
+    real(dp),    intent(in)    :: appamt,disreg1,disreg2, disreg3
+end subroutine
+\end{fortrancode}
+
+\subsection{Net income}
+Following the calculation of these income components, FORTAX proceeds to construct a number of summary income measures: \texttt{net\%tu\%tottax} (total tax paid by the tax unit), \texttt{net\%tu\%pretax} (pre-tax income of the tax unit), \texttt{net\%tu\%dispinc} (disposable income of the tax unit). It also calculates the values of \texttt{net\%ad\%pretaxearn} (pre-tax earnings of each adult -- same as \texttt{net\%fam\%ad\%earn}) and \texttt{net\%tu\%pretaxearn} (pre-tax earnings of the tax unit).
+
+\section{Example code}\label{sec:example}
+
+This section illustrates the basic use of FORTAX. It defines a family (in this case, a lone parent with two children aged 2 and 10, rent of \pounds 50 per week, childcare expenditure of \pounds 20 per week, and council tax band C) by calling \texttt{fam\_gen}. Any unspecified components will be set to their default values. Note also that it will automatically satisfy the relevant dependencies in \texttt{fam}, so setting the appropriate number of children (\texttt{fam\%nkids=2}), and age of youngest child (\texttt{fam\%yngkid=2}). It uses \texttt{readTaxParams} to load the systems \texttt{April98.xml} and \texttt{April02.xml} into \texttt{sys(1)} and \texttt{sys(2)} respectively. I now want to modify \texttt{sys(1)} so that it is expressed in the same prices as \texttt{sys(2)}. I do this by first loading the price index via \texttt{loadindex} (default is \texttt{`prices/rpi.csv'}). I then calculate the uprating factor \texttt{factor} using \texttt{upratefactor} and by referencing the prices information saved in the system files. To demonstrate the use of the system file writing procedure, I call \texttt{fortaxwrite} which saves the modified system \texttt{sys(1)} as \texttt{`April98rpi02.xml'}. I then loop over the range of hours, from \texttt{hrs1} to \texttt{hrs2} with \texttt{nhrs} steps. At each cycle I modify the hours and earnings information in \texttt{fam\%ad(1)}, using the wage defined earlier in \texttt{wage}. The subroutine \texttt{calcNetInc} is called twice (once for each system) to calculate incomes under the respective systems, which are then saved in \texttt{net(1)} and \texttt{net(2)}. The values of hours and net disposable income under \texttt{sys(1)} and \texttt{sys(2)} are then written to the default unit. The loop then continues.
+
+\begin{fortrancode}[title={Example code using FORTAX},frame=lines]
+program fortaxexample
+
+    !load the required modules
+    use fortax_realtype
+    use fortax_type
+    use fortax_read
+    use fortax_write
+    use fortax_calc
+    use fortax_prices
+    
+    implicit none
+        
+    type(fam_t) :: fam
+    type(sys_t) :: sys(2)
+    type(net_t) :: net(2)
+
+    integer  :: i, nhrs
+    real(dp) :: wage, hrs1, hrs2, hrstep, factor
+
+    !generate a family
+    fam = fam_gen(kidage=(/2,10/),rent=50.0_dp, ccexp=20.0_dp,ctband=3)
+    
+    !hourly wage rate, and hours range
+    wage = 5.0_dp
+    hrs1 = 0.0_dp
+    hrs2 = 100.0_dp
+    nhrs = 100
+
+    !step size when looping over hours
+    hrstep = (hrs2-hrs1)/real(nhrs-1,dp)
+  
+    !load fortax system files
+    call readTaxParams(sys(1),'systems/fortax/April98.xml', 'fortax')
+    call readTaxParams(sys(2),'systems/fortax/April02.xml', 'fortax')
+
+    !load the price index to perform uprating
+    call loadindex()
+
+    !uprate prices so April 98 system is in April 02 prices
+    factor = upratefactor(sys(1)%extra%prices, sys(2)%extra%prices)
+    call upratesys(sys(1),factor,sys(2)%extra%prices)
+    
+    !write the uprated system. this is not necessary here,
+    !but allows new system to be used directly in future
+    call fortaxwrite(sys(1),'systems/fortax/April98rpi02.xml')
+        
+    !loop over the range of hours, from hrs1 to hrs2
+    do i = 1, nhrs
+
+        !modify the hours and earnings information in fam
+        fam%ad(1)%hrs  = hrs1 + (i-1)*hrstep
+        fam%ad(1)%earn = wage*fam%ad(1)%hrs
+
+        !call the main calculation routine
+        call calcNetInc(sys(1),fam,net(1))
+        call calcNetInc(sys(2),fam,net(2))
+
+        !write hours, and net income from both systems
+        write (*,'(3(F12.4,2X))') fam%ad(1)%hrs, net(1)%tu%dispinc, net(2)%tu%dispinc
+
+    end do
+            
+end program
+\end{fortrancode}
+
+% \section{Version history}\label{sec:version}
+% v0.10.0, released yyyymmdd
+% \begin{itemize}
+%  \item First release
+% \end{itemize}
+
+\addcontentsline{toc}{section}{References}
+\bibliography{fortax}
+
+\end{document}
+
+% \subsection{Income Tax}
+%
+% \begin{center}
+% \begin{tabular}{lc}
+% \toprule
+% Allowance and bands & Tax rate\\
+% \midrule
+% \pounds4,895 & 0\%\\
+% \pounds0-\pounds2,090 (taxable income) & 10\%\\
+% \pounds2,090-\pounds32,400 (taxable income) & 22\%\\
+% \pounds32,400+ (taxable income) & 40\%\\
+% \bottomrule
+% \end{tabular}
+% \end{center}
+%
+% \subsubsection{Taxable earnings (personal allowance and pre-Apr 94 MCA/APA)}
+%
+%
+% Income tax operates through a system of allowances and bands of income. Each individual has a personal allowance, which is deducted from total income before tax to give taxable income. Age related personal allowances are ignored in our implementation because I currently only consider working-age individuals.
+%
+% \subsubsection*{pre-April 1994 MCA/APA}
+% Until April 1994 married couple's allowance (MCA) was available to married couples. Up until April 1993, MCA was set against the income of the husband (with any unused allowance transferable to the wife). From April 93, half or all of the MCA could be transferred to the wife (any unused allowance could still be transferred to the other member of the couple). Since April 1990, the additional personal allowance (APA) -- an allowance available to lone parents and unmarried couples with children -- has been equal to the MCA. For couples, the APA could be divided between spouses as desired.
+%
+% Algorithm
+% \begin{enumerate}
+% \item Subtract personal allowance from individual earnings
+% \item If MCA not restricted (i.e. if before Apr 94):
+% If lone parent, subtract APA (=MCA) from earnings
+% If couple, subtract MCA/APA from highest earner and any remainder from secondary earner
+% \end{enumerate}
+%
+% \subsubsection*{pre-April 1994 MCA/APA}
+% From April 1994, both the MCA and APA no longer operated as an allowance.
+%
+% [Note simplification to who is gets the allowance – is this reasonable?]
+%
+% \subsubsection{Post-Apr 94 MCA/APA}
+% \begin{itemize}
+%  \item Between Apr 94 and Apr 00, the MCA and APA reduced tax payable rather than being an allowance
+% \item The allowance was described as being “restricted” to some percentage (e.g. 20 per cent). This meant that tax due was reduced by 20 per cent of the allowance.
+% \item The same rules apply as above for who gets the MCA/APA. Any unused allowance could be transferred between spouses
+% \item In Apr 00, the MCA and APA were abolished for people born after 1935 (perhaps APA was abolished for everyone)
+% \end{itemize}
+%
+% Algorithm
+%
+% \begin{enumerate}
+% \item If lone parent, subtract APA (=MCA) from tax liability
+% \item If couple, subtract MCA/APA from tax liability of highest earner and any remainder from tax liability of secondary earner
+% \end{enumerate}
+% [Again, note simplification to who gets allowance]
+%
+% \subsubsection{Children’s tax credit}
+%
+% Children's tax credit was only available in two years, 2001/02 and 2002/03, and reduced the tax liability of those with children by a flat-rate amount (tapered away for higher-rate taxpayers) but making no distinction between married and unmarried people.
+%
+% \begin{enumerate}
+% \item Calculate maximum credit
+% \begin{itemize}
+% \item Only available in two years: 2001/02 and 2002/03
+% \item Entitled if family has a child aged under 16
+% \item Additional element in 2002/03 for families with a child aged 0
+% \end{itemize}
+% \item Taper away credit from higher rate taxpayers
+% \begin{itemize}
+%  \item Taper rate is 1/15 in both years
+%  \item If two higher rate taxpayers, it is only tapered away from the higher earner
+% \end{itemize}
+% \item Subtract remaining credit from tax due
+% \begin{itemize}
+%  \item Deducted for the higher earner first, and then the secondary earner if any is left over
+% \end{itemize}
+% \end{enumerate}
+%
+% \noindent Our implementation ignores the fact that a couple where neither individual is a higher rate taxpayer can choose to transfer half or all the credit to the lower earner.
+%
+% \subsection{Calculate National Insurance}
+%
+% The structure of NI has changed a bit since 1991. The main reforms to employee contributions are:
+% \begin{itemize}
+% \item 1999: abolition of cliff edge (“entry fee”) at first threshold
+% \item 2003 onwards: Cap lifted on contributions, so NI now charged above UEL
+% \end{itemize}
+% For 2005/06, the rates were:
+% \begin{center}
+%  \begin{tabular}{lcc}
+%   \toprule
+% Income range (weekly) & Employee rate & Employer rate\\
+% \midrule
+% \pounds0-\pounds94 & 0\% & 0\%\\
+% \pounds94-\pounds630 & 11\% & 12.8\%\\
+% \pounds630+ & 1\% & 12.8\%\\
+% \bottomrule
+%  \end{tabular}
+% \end{center}
+% This ignores contracting out. Note also that NI is paid according to pay period (weekly or monthly). The self-employed paid different contributions.
+%
+% Fortran code ignores: Contracting out,Self-employed
+%
+% \subsection{Calculate child benefit}
+%
+% Child Benefit is a universal non-taxable benefit available for families with children. A child is someone aged under 16, or aged 16-18 and in full-time education. The lone parent rate of child benefit (which replaced the former one parent benefit in April 1997) was abolished from 6 July 1998 except for existing claimants. This means that to receive the lone parent rate you need to have been a lone parent since 1998. Our implementation ignores the fact that the lone parent rate can still be claimed by existing claimants.
+%
+% \begin{center}
+% \begin{tabular}{lc}
+% \toprule
+% & Weekly value\\
+% \midrule
+% Eldest child (couple) & \pounds17.00\\
+% Eldest child (LP) & \pounds17.55\\
+% Other children (each) & \pounds11.40\\
+% \bottomrule
+% \end{tabular}
+% \end{center}
+%
+% \subsection{Calculate contributory JSA}
+%
+% Jobseeker’s allowance (JSA) replaced unemployment benefit and income support for unemployed people from 7 October 1996. There are two main types of JSA: contribution-based JSA is paid to individuals who have satisfied the National Insurance contribution (NIC) conditions; income-based JSA is paid to claimants who satisfy a family income-based means test (discussed later).
+%
+% Individuals are eligible to receive contributory JSA if they satisfy the following eligibility criteria:
+% \begin{itemize}
+% \item Claimant works less than 16 hours but is actively seeking work
+% \item Contribution conditions are satisfied (see below)
+% \item Net earnings and pensions of claimant do not exceed specified amount
+% \item Not claiming IS
+% \item Below pension age
+% \end{itemize}
+%
+%
+% Contribution-based JSA is paid at the following rates:
+%
+% \begin{center}
+% \begin{tabular}{lc}
+% \toprule
+% & Weekly value\\
+% \midrule
+% aged under 18 & \pounds33.85\\
+% 18-24 & \pounds44.50\\
+% 25+ & \pounds56.20\\
+% \bottomrule
+% \end{tabular}
+% \end{center}
+%
+% There are two contribution conditions:
+% \begin{enumerate}\item
+% \item you must have actually paid Class 1 NI contributions in at least one of the two complete tax years prior to the relevant benefit year that produce an earnings factor at least 25 times that year’s LEL. For Class 1 contributions, the earnings factor is the amount of earnings (excluding those earnings above the UEL) upon which those contributions have been paid.
+% \item you must have either paid or been credited with contributions producing an earnings factor equal to 50 times the LEL in each of the last two complete tax years ending before the relevant benefit year
+% \end{enumerate}
+%
+% It can be received for a maximum of 182 days in any job-seeking period. You are not entitled for the first three days of any job-seeking period. The amount of contributory JSA received is reduced pound-for-pound by net earnings (less \pounds5) and pensions (less \pounds50).
+%
+% I don’t think contributory JSA is paid at a reduced rate if the contribution conditions are not met in full, but I’m not absolutely sure.
+%
+% \subsection{Calculate tax credits}
+% http://news.bbc.co.uk/
+% \subsubsection{Child tax credit}
+%
+% To get CTC, the family must have at least one child. Someone counts as a child until 1st September following their 16th birthday, or 19th birthday if they are in FTE.
+%
+% \begin{center}
+% \begin{tabular}{lc}
+% \toprule
+% CTC elements & Value (annual)\\
+% \midrule
+% Family & \pounds545\\
+% Family with child under 1 (additional) & \pounds545\\
+% Child element (each) & \pounds1,690\\
+% \bottomrule
+% \end{tabular}
+% \end{center}
+%
+% Ignores disabled child supplements
+%
+% \subsubsection{Working tax credit}
+%
+% Eligibility:
+% Families with children: at least one adult works at least 16 hours per week
+% Families without children: at least one adult in the family must be aged 25+ and working 30+ hours per week (does it have to be the same person?)
+%
+% \begin{center}
+% \begin{tabularx}{\textwidth}{lXX}
+% \toprule
+% WTC elements & Value (annual) & Value (weekly)\\
+% \midrule
+% Basic & \pounds1,620\\
+% Extra for couples and LPs & \pounds1,595\\
+% 30hrs element & \pounds660\\
+% Childcare credit & & 70\% of cc costs up to \pounds175 (1 kid) or \pounds300 (2+ kids)\\
+% \bottomrule
+% \end{tabularx}
+% \end{center}
+%
+% aFor couples, it is 30 hours in total if either or both are responsible for children (at least one must work 16 hours)
+% bAll adults in the family must work at least 16 hours to be eligible
+%
+% Ignores supplements for the over 50s returning to work and disability elements.
+%
+% \subsubsection{Joint CTC-WTC means test}
+%
+% P1248 CPAG 08/09: entitlement to IS/IB-JSA passports to maximum CTC/WTC.
+% P1258: IS/IB-JSA, HB, CTB, CB all ignored for income test.
+%
+% The means test depends on family income. Relevant income is equal to the sum of:
+% Gross earnings
+% Contributory JSA
+% Income from pensions, savings (less \pounds300)
+%
+% So basically, I can just consider gross earnings.
+%
+% WTC/CTC is not taxable
+%
+%
+% Tapering:
+% Entitlement to all but the family element of CTC (including extra for child under 1) is tapered away at 37\% above the first income threshold
+% The first income threshold is \pounds5,220 unless the family is only eligible for CTC, in which case it is \pounds13,910
+% The family element of CTC is withdrawn at a rate of 1/15 once income exceeds \pounds50,000 (assuming other TC entitlement has already been tapered away)
+%
+% Maintenance is not taken into account at all when calculating WTC and CTC.
+%
+% The minimum award is \pounds26.
+%
+% Assessment:
+% Assessment is always based on income over a full tax year (except when you are getting IS and income-based JSA)
+% At the start of the claim, the award is based on income for the previous tax year
+% After the end of the current tax year, awards are finalised
+% Fortran code
+% Works weekly (not annual)
+%
+% \subsubsection{WFTC}
+% What counts:
+% Net earnings (CPAG is not at all clear that it is net rather than gross earnings, but I think that is the case!) There are no earnings disregards (the one for childcare under FC is replaced by a childcare component of WFTC)
+% Contribution-based JSA
+%
+% What doesn’t:
+% Child benefit
+% HB, CTB, CCB
+% IS and income-based JSA
+%
+% WFTC is not taxable.
+%
+% \subsubsection{FC}
+% What counts:
+% Net earnings. From Oct 94 there is an earnings disregard for childcare costs
+% Contribution-based JSA/unemployment benefit
+%
+% What doesn’t:
+% Child benefit
+% HB, CTB, CCB
+% IS and income-based JSA
+%
+% FC is not taxable.
+%
+% \subsection{Calculate IS and income-based JSA}
+%
+% Up to Oct 96, unemployed people who satisfied the contribution conditions got UB, while those who didn’t could claim IS. In Oct 96, UB was renamed contributory JSA, and, for people who could work, IS was renamed income-based JSA.
+%
+% Given I are ignoring contributory JSA, I can also ignore UB. This leaves us needing to model IS (up to Oct 96) and IS and IB-JSA (since Oct 96).
+%
+% IS and income-based JSA are basically the same benefit but available to different groups.
+%
+% Simplified eligibility (to IS or IS/IB-JSA):
+% Neither claimant nor partner working full time (up to Apr 92: 24 hrs, Apr 92 to Oct 1996(?): 16 hrs, Oct 1996(?) onwards: 16 hrs for claimant, 24hrs for partner)
+% BUs with no one 18+ must have a child
+% [I haven’t checked entitlement conditions for 60+]
+% [Ignores capital limit]
+% Calculation
+%
+% i)Calculate applicable amount
+%
+% Allowance + LP/family premium + child additions
+%
+% LP premium abolished in Apr 98 except for existing claimants
+% Family premium and child additions transferred to CTC in 2003
+% [Housing costs, disability ignored]
+%
+% ii)Calculate disregard
+%
+% \pounds20 if LP, \pounds5 if single
+% \pounds5 each (up to Oct 96) or \pounds10 in total (from Oct 96) if couple
+%
+% iii)Calculate net income
+%
+% What counts:
+% Net earnings of BU less disregard
+% Child benefit counts in full up to 2002/03. From 2003/04 it does not count (because child support comes through CTC). [Note: the description in CPAG for 2003/04 is much more complicated because it was a transitional year when both CTC and IS with child additions could be claimed simultaneously. I simplify by assuming all child support comes through CTC in 2003/04]
+% WTC
+% WFTC
+% FC
+%
+% What doesn’t:
+% HB/CCB/CTB
+% CTC (assuming all child payments go through CTC)
+%
+% I ignore imputed income from capital
+%
+% iv)Calculate means test
+%
+% Award = applicable amount less net income (i.e. it tops net income up to applicable amount)
+%
+% v)Calculate free school meals
+%
+% If award calculated in (iv) is > 0, give each child aged 5+ free school meals value
+%
+%
+% IS is not taxable
+%
+% Fortran code
+%
+% Applicable amount:
+% Couples with one under 18 and one over 18 treated as though both over 18
+% Only most common rate used when both under 18 (this is all that is available in TAXBEN)
+% Housing costs ignored
+% LP premium abolished from Apr 98 except for existing claimants. Code ignores the “existing claimants” bit
+%
+% Disregard
+% Assumed to be \pounds10 for couples (rather than \pounds5 for each member of the couple, as it was before Oct 96) to avoid having to keep track of a disregard for each member of a couple
+%
+% Entitlement
+% BUs with no one 18+: only eligible if have a child (is this right? Or does it apply if either in a couple is below 18?)
+% Hours rule: from Oct 96, should be claimant under 16 hrs, partner under 24. But I have coded both as 16 (there doesn’t seem to be a parameter corresponding to either the 16 or 24 hrs in the .bp3 file). The consequence of this is that it is never possible to get IS/IB-JSA at the same time as FC/WFTC/WTC – very handy!
+%
+% Other
+% Maximum IS hrs is set equal to FC hrs – this seems to exist after 2003, but is it a bit dodgy relying on something that has been abolished?
+%
+% Maintenance payments
+%
+% Maintenance is financial support paid for another person. It can be paid to an adult or for children.
+%
+% IS and IB-JSA
+%
+% Most maintenance counts in full. The exception is child maintenance after 3 Mar 03, for which there is a \pounds10 disregard (due to increase to \pounds20 by the end of 2008).
+%
+% (Before Mar 03, there was a child maintenance bonus of up to \pounds1,000 for people whose IS or IB-JSA entitlement ends because they returning to work or increase hours or earnings. I ignore this).
+%
+% HB/CTB
+% From Apr 92, \pounds15 disregarded if you are a lone parent or couple with child. By the end of 2008, the full amount of maintenance payments is expected to be disregarded
+%
+% FC
+%
+% From Apr 92, \pounds15 disregard for single parents or couples with children
+%
+% WFTC
+%
+% All maintenance ignored
+%
+% WTC/CTC
+%
+% All maintenance ignored
+% \subsection{Calculate income tax}
+%
+% I have already calculated income tax on earnings. What remains is to calculate income tax on:
+% taxable benefits
+% savings income
+%
+% The maximum amount of JSA that is taxable (regardless of whether you claim contributory or income-based JSA) is equal to the appropriate income-based personal allowance (single/couple).
+%
+% One potential problem is that IS and income-based JSA depends on contributory JSA. If this is net contributory JSA, I need already to have calculated tax due on this.
+%
+% Also, do I need to worry about tax not being collected on JSA until return to work?
+%
+% \subsection{Calculate HB, CTB and CCB}
+%
+% HB
+% There are no upper or lower age limits for HB
+%
+% CT and CTB
+% CT was introduced in Apr 93, replacing CC
+% It does not apply to Northern Ireland (where domestic rates still exist)
+% You are liable if aged 18+
+% 25 per cent discount for single-liable-person households
+% No CTB if all adults are < 18
+%
+% CC and CCB
+% The Community Charge (Poll Tax) existed between Apr 90 and Apr 93 (it was trialled in Scotland for a year beforehand)
+% It does not apply to NI (where domestic rates are still in place)
+% You are liable if you are aged 18+
+% The amount is a flat rate that depends on the LA. Full-time students only pay 20 per cent of the charge and cannot claim CCB
+% CCB is claimed by couples (despite CB being levied on individuals), but it is divided between individuals according to the proportion each is due to pay (usually divided equally)
+% The most you can get is 80 per cent of your CB
+% IS passports to maximum CCB.
+% No award if all adults are < 18 (because not liable for CC)
+% Calculation for HB/CTB/CCB
+% HB, CTB and CCB are all calculated in much the same way, so do all of them together.
+%
+% i)For HB: work out eligible rent
+% Is the cap imposed before or after ineligible charges are deducted?
+% Contractual rent less ineligible charges (fuel, services, food, etc)
+% Impose rent cap
+%
+% ii)For CTB: calculate weekly eligible CT liability of BU (taking age into account)
+% Calculate council tax liability for household (depends on band of home and number of liable individuals aged 18+)
+% Calculate fraction of council tax liability each benefit unit is liable for
+% If after April 1998, impose cap for high value homes (bands F, G and H)
+%
+% iii)For CCB: calculate weekly maximum CCB
+% The most you can get is 80 per cent of your CC
+%
+% iv)Check IS/income-based JSA eligibility
+% If eligible, get full eligible rent and full eligible CT liability or 80 per cent of CB liability
+% Otherwise follow steps below
+%
+% v)Work out applicable amount (“weekly needs”)
+%
+% Allowance + LP/family premium + child additions
+%
+% Young and main rates; main rate applies if either individual in a couple is above age threshold (cf IS/IB-JSA where there are complications)
+% LP premium abolished in Apr 98 except for existing claimants
+% Family premium and child additions still exist after 2003 (i.e. they were NOT transferred to CTC as was the case for IS/IB-JSA)
+%
+% vi)Work out disregards
+%
+% Standard disregard:
+% \pounds25, \pounds10 or \pounds5 (values change a little over time)
+% Set against earnings
+%
+% HB/CTB disregard for workers
+% Has existed since FC 30-hour credit was introduced in 1995
+% Form:
+% Up to 1999/2000: disregarded FC income
+% From 2000/01: disregarded earnings unless earnings too low to take advantage of all disregards (in which case it is set against WFTC/WTC income)
+% Worth:
+% Up to 2003/04: FC/WFTC/WTC 30-hour premium
+% 2005/06 onwards: more than WTC 30-hour premium
+% Entitlement varies over time:
+% Up to 2003/04: those eligible for FC/WFTC/WTC FT premium
+% 2003/04 onwards: those eligible for WTC
+%
+% Disregard for childcare costs (works like the one for FC while it existed)
+% Disregard per week (one child/more than one child):
+% \pounds40/\pounds40 (Oct 94-1995/96)
+% \pounds60/\pounds60 (1996/97-Jun 98)
+% \pounds60/\pounds100 (Jun 98-1999/2000)
+% \pounds70/\pounds105 (2000/01-2001/02)
+% \pounds94.50/\pounds140 (2002/03-2003/04)
+% \pounds135/\pounds200 (2004/05)
+% \pounds175/\pounds300 (2005/06-2008/09)
+% Children must be aged:
+% Note: from 1997, a child is not counted as being x years old until the Sep after their xth birthday
+% 10 or under (Oct 94-Jun 98)
+% 11 or under (Jun 98-1999/2000)
+% 14 or under (2000/01) – note max age for childcare credit in WFTC was 14 from the start (i.e. Oct 1999)
+% It’s not clear that the childcare expenditure has to relate to children under the age limit (i.e. perhaps it can be for other children in the family)
+% All adults in BU must be working 16+ hours
+% Disregard set against:
+% Earnings up to 2000/01
+% Earnings and WFTC from 2001/02 to 2002/03 (formally, WFTC only enters if earnings are not high enough to take advantage of all disregards)
+% Earnings and WTC/CTC from 2003/04 onwards (formally, WTC/CTC only enters if earnings are not high enough to take advantage of all disregards)
+%
+%
+% vii)Work out income
+%
+% What counts:
+% Net earnings less disregards (see above)
+% Contribution-based JSA/unemployment benefit
+% Child benefit
+% CTC
+% WTC except:
+% 2003/04: 30-hour element
+% 2004/05 onwards: for those whose earnings are too low to use all the additional full-time earnings disregard
+% WFTC (but note disregard above for those entitled to FT component of WFTC)
+% FC (except for 30-hour element from 1996/97 according to CPAG, despite 30-hour element existing from Apr 95)
+%
+% What doesn’t:
+% IS and income-based JSA
+%
+% viii)Calculate taper
+% Reduce award by a percentage of the amount by which income exceeds the applicable amount: 65\% for HB, 20\% for CTB and 15\% for CCB
+% No HB or CCB is payable if amount would be less than 50p a week. There is no minimum for CTB.
+%
+% HB, CTB and CCB are not taxable.
+% HB rent cap rules
+% Rent caps are only relevant for private and housing association tenants. They do not apply to local authority tenants.
+%
+% There have been three sets of rules for rent caps:
+%
+% Pre-Jan 1996 rules
+% There seems to be a fair amount of discretion. The local authority must reduce your eligible rent if the accommodation is too large or expensive. The amount by which it is reduced is up to the local authority
+%
+% Jan 1996 – Apr 2008 (or late 2003 if in a Pathfinder area): local reference rent rules
+% Actually, there were two versions:
+% Jan 1996 – Oct 1997:
+% Subtract ineligible charges from rent
+% If rent less ineligible charges is excessive or property is too big, make significantly high rent determination, size-related rent determination or exceptionally high rent determination, and take the minimum of these
+% Find local reference rent for an appropriately-sized property (midpoint of reasonable rents in locality)
+% If this is higher than the minimum calculated above, the rent cap is just this minimum. Otherwise the rent cap is mid-way between the two
+% Oct 1997 – Apr 2008 (or late 2003 if in a Pathfinder area):
+% Two things changed relative to the Jan 1996 – Oct 1997 system:
+% Single claimants under 25 had a single room rent imposed rather than the local reference rent
+% If the local reference rent was less than the minimum calculated above, the rent cap was the local reference rent (rather than half way between the local reference rent and the minimum calculated above)
+%
+% Apr 2008 onwards (or late 2003 onwards in Pathfinder areas): local allowance rules
+% Maximum rent = min(local housing allowance, actual rent + \pounds15)
+% Local housing allowance is set for:
+% (i)one-bedroom shared accommodation
+% (ii)one-bedroom self-contained accommodation
+% (iii)two, three, four and five-bedroom accommodation
+% Category (i) applies for singles under 25 and for those who live in shared accommodation and who are only allowed one bedroom under the size criteria. Category (ii) applies if you are allowed one room under the size criteria, are aged 25+ and do not live in shared accommodation. Category (iii) applies in other cases
+%
+% Local allowance rules in Pathfinder areas during the pilot were more generous.
+% Currently ignores
+% Second adult rebate (part of CTB)
+% Capital rules
+% Non-dependents
+% Transitional protection/rules for rent caps
+% Special conditions for students
+% Special conditions for pensioners/60+
+% Fortran code
+%
+% Applicable amount (``needs'')
+% Premium for family with child under 1 is implemented as a child addition (in line with TAXBEN parameters), so error if family has more than one child under 1
+%
+% HB/CTB calculation
+% Doesn’t do rent cap for HB, nor deductions for ineligible charges
+% Doesn’t calculate CT cap
+%
+% Disregards
+% Simplification: disregard for workers and disregard for childcare costs set against sum of earnings (less standard disregard) plus FC/WFTC/WTC
+% \subsection{Calculate maternity grant}
+%
+% Called ``maternity expenses payment'' up to 10 Jun 2000, and ``Sure Start maternity grant'' thereafter
+%
+% Amount
+% One-off payment for each new baby
+% \pounds100 (1991-10 Jun 00)
+% \pounds200 (11 Jun 00 – Apr 2001?)
+% \pounds300 (Apr 2001 – 15 Jun 2002)
+% \pounds500 (16 Jun 2002 – )
+%
+% Taper
+% Capital above \pounds500 results in award being tapered away one-for-one. If you have twins, I think both awards are tapered away simultaneously (probably up to Apr or Jun 02)
+% No taper (probably from either Apr or Jun 02)
+%
+% Entitlement
+% Getting (ignores disability):
+% IS/IB-JSA or FC/WFTC (up to Apr 03)
+% IS/IB-JSA or more than the family element of CTC (from Apr 03)
