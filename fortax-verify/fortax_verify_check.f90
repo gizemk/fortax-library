@@ -14,7 +14,7 @@
 ! You should have received a copy of the GNU General Public License
 ! along with FORTAX.  If not, see <http://www.gnu.org/licenses/>.
 
-! usage: usage: ./fortax_verify_check number_families system_directory file_name
+! usage: usage: ./fortax_verify_check file_name system_directory [number_detailed_differences]
 
 program fortax_verify_check
 
