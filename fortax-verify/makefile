@@ -3,9 +3,9 @@ MODPATH = ../fortax
 FORTAXLIB = ../fortax/fortax.a
 
 # ------------------Macro-Defs---------------------
-FFLAGS = -O0 -g -traceback -fpp -check bounds -check all -warn unused -stand f03 -fPIC -gen-interfaces -module $(MODPATH)
+# FFLAGS = -O0 -g -traceback -fpp -check bounds -check all -warn unused -stand f03 -fPIC -gen-interfaces -module $(MODPATH)
 DIAGDISABLE = -diag-disable 5268,7025
-# FFLAGS = -O3 -fpp -stand f03 -warn all -inline speed -inline-forceinline -no-prec-div -xHost -static -fPIC -gen-interfaces $(DIAGDISABLE) $(GPROF) -module $(MODPATH)
+FFLAGS = -O3 -fpp -stand f03 -warn all -inline speed -inline-forceinline -no-prec-div -xHost -static -fPIC -gen-interfaces $(DIAGDISABLE) $(GPROF) -module $(MODPATH)
 F90 = ifort
 # -------------------End-macro-Defs---------------------------
 
