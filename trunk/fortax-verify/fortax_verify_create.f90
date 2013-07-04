@@ -194,7 +194,7 @@ program fortax_verify_create
     ! earnings
     call random_number( rnd )
     call getRnd_Real( rnd, earn_grid, fam_real )
-    forall (ix=1:nfam) fam(ix)%ad(1)%earn = fam_real(ix)
+    forall (ix=1:nfam) fam(ix)%ad(1)%earn = merge(fam_real(ix),0.0_dp,fam(ix)%ad(1)%hrs>0.0_dp)
 
     ! age
     call random_number( rnd )
@@ -216,7 +216,7 @@ program fortax_verify_create
     ! earnings
     call random_number( rnd )
     call getRnd_Real( rnd, earn_grid, fam_real )
-    forall (ix=1:nfam) fam(ix)%ad(2)%earn = fam_real(ix)
+    forall (ix=1:nfam) fam(ix)%ad(2)%earn = merge(fam_real(ix),0.0_dp,fam(ix)%ad(2)%hrs>0.0_dp)
 
     ! age
     call random_number( rnd )
